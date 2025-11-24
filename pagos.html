@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGV BRASA - Pagos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { theme: { extend: { colors: { brand: '#0ea5e9' } } } }
+    </script>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white border-b">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-bold text-brand">SGV BRASA</h1>
+                <div class="flex gap-4">
+                    <a href="index.html" class="px-3 py-2 rounded hover:bg-gray-100">Dashboard</a>
+                    <a href="ventas.html" class="px-3 py-2 rounded hover:bg-gray-100">Ventas</a>
+                    <a href="pagos.html" class="px-3 py-2 rounded bg-brand text-white">Pagos</a>
+                    <a href="clientes.html" class="px-3 py-2 rounded hover:bg-gray-100">Clientes</a>
+                    <a href="productos.html" class="px-3 py-2 rounded hover:bg-gray-100">Productos</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-3xl font-bold">Pagos</h2>
+            <button onclick="toggleForm()" class="bg-brand text-white px-6 py-2 rounded hover:bg-blue-600">
+                Registrar Pago
+            </button>
+        </div>
+
+        <!-- Formulario Registrar Pago -->
+        <div id="formPago" class="hidden bg-white p-6 rounded-lg shadow mb-8">
+            <h3 class="text-xl font-bold mb-4">Registrar Nuevo Pago</h3>
+            <form onsubmit="crearPago(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Venta</label>
+                    <select id="venta_id" onchange="updateVentaInfo()" required class="w-full border rounded px-3 py-2">
+                        <option value="">Seleccionar venta...</option>
+                    </select>
+                </div>
+                <div id="ventaInfo" class="hidden bg-blue-50 p-4 rounded">
+                    <div class="text-sm space-y-1">
+                        <div><span class="font-semibold">Cliente:</span> <span id="info_cliente"></span></div>
+                        <div><span class="font-semibold">Monto Total:</span> <span id="info_total"></span></div>
+                        <div><span class="font-semibold">Saldo Pendiente:</span> <span id="info_saldo" class="text-yellow-600 font-bold"></span></div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Monto del Pago</label>
+                    <input type="number" id="monto" step="0.01" required class="w-full border rounded px-3 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Método de Pago</label>
+                    <select id="metodo_pago" class="w-full border rounded px-3 py-2">
+                        <option value="efectivo">Efectivo</option>
+                        <option value="transferencia">Transferencia</option>
+                        <option value="yape">Yape</option>
+                        <option value="plin">Plin</option>
+                    </select>
+                </div>
+                <div class="flex gap-4">
+                    <button type="submit" class="bg-brand text-white px-6 py-2 rounded hover:bg-blue-600">
+                        Registrar Pago
+                    </button>
+                    <button type="button" onclick="toggleForm()" class="border px-6 py-2 rounded hover:bg-gray-100">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Lista de Pagos -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b">
+                    <tr>
+                        <th class="px-4 py-3 text-left">ID</th>
+                        <th class="px-4 py-3 text-left">Venta</th>
+                        <th class="px-4 py-3 text-left">Cliente</th>
+                        <th class="px-4 py-3 text-right">Monto</th>
+                        <th class="px-4 py-3 text-left">Método</th>
+                        <th class="px-4 py-3 text-left">Fecha</th>
+                    </tr>
+                </thead>
+                <tbody id="listaPagos">
+                    <tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No hay pagos registrados</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function toggleForm() {
+            const form = document.getElementById('formPago');
+            form.classList.toggle('hidden');
+            if (!form.classList.contains('hidden')) {
+                loadVentasPendientes();
+            }
+        }
+
+        function loadVentasPendientes() {
+            const ventas = JSON.parse(localStorage.getItem('ventas') || '[]');
+            const pagos = JSON.parse(localStorage.getItem('pagos') || '[]');
+
+            // Calcular saldo pendiente
+            ventas.forEach(venta => {
+                const pagosVenta = pagos.filter(p => p.venta_id === venta.id);
+                venta.monto_pagado = pagosVenta.reduce((sum, p) => sum + parseFloat(p.monto || 0), 0);
+                venta.saldo_pendiente = venta.monto_total - venta.monto_pagado;
+            });
+
+            const ventasPendientes = ventas.filter(v => v.saldo_pendiente > 0);
+
+            const options = ventasPendientes.map(v =>
+                `<option value="${v.id}" data-venta='${JSON.stringify(v)}'>${v.id} - ${v.cliente_nombre} (Saldo: S/ ${v.saldo_pendiente.toFixed(2)})</option>`
+            ).join('');
+
+            document.getElementById('venta_id').innerHTML = '<option value="">Seleccionar venta...</option>' + options;
+        }
+
+        function updateVentaInfo() {
+            const select = document.getElementById('venta_id');
+            const option = select.options[select.selectedIndex];
+
+            if (option.value) {
+                const venta = JSON.parse(option.dataset.venta);
+                document.getElementById('info_cliente').textContent = venta.cliente_nombre;
+                document.getElementById('info_total').textContent = `S/ ${venta.monto_total.toFixed(2)}`;
+                document.getElementById('info_saldo').textContent = `S/ ${venta.saldo_pendiente.toFixed(2)}`;
+                document.getElementById('ventaInfo').classList.remove('hidden');
+                document.getElementById('monto').value = venta.saldo_pendiente.toFixed(2);
+            } else {
+                document.getElementById('ventaInfo').classList.add('hidden');
+            }
+        }
+
+        function crearPago(e) {
+            e.preventDefault();
+
+            const pagos = JSON.parse(localStorage.getItem('pagos') || '[]');
+            const ventas = JSON.parse(localStorage.getItem('ventas') || '[]');
+
+            const ventaId = document.getElementById('venta_id').value;
+            const venta = ventas.find(v => v.id === ventaId);
+            const monto = parseFloat(document.getElementById('monto').value);
+
+            // Validar que no exceda saldo
+            const pagosPrevios = pagos.filter(p => p.venta_id === ventaId);
+            const montoPagado = pagosPrevios.reduce((sum, p) => sum + parseFloat(p.monto), 0);
+            const saldoDisponible = venta.monto_total - montoPagado;
+
+            if (monto > saldoDisponible) {
+                alert('❌ El monto excede el saldo pendiente');
+                return;
+            }
+
+            const id = `P-2024-${String(pagos.length + 1).padStart(3, '0')}`;
+
+            const pago = {
+                id,
+                venta_id: ventaId,
+                cliente_nombre: venta.cliente_nombre,
+                fecha: new Date().toISOString().split('T')[0],
+                monto,
+                metodo_pago: document.getElementById('metodo_pago').value
+            };
+
+            pagos.push(pago);
+            localStorage.setItem('pagos', JSON.stringify(pagos));
+
+            alert('✅ Pago registrado exitosamente');
+            toggleForm();
+            e.target.reset();
+            loadPagos();
+        }
+
+        function loadPagos() {
+            const pagos = JSON.parse(localStorage.getItem('pagos') || '[]');
+
+            const html = pagos.reverse().map(p => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-4 py-3 font-mono text-sm">${p.id}</td>
+                    <td class="px-4 py-3 font-mono text-sm">${p.venta_id}</td>
+                    <td class="px-4 py-3">${p.cliente_nombre}</td>
+                    <td class="px-4 py-3 text-right font-semibold text-green-600">S/ ${parseFloat(p.monto).toFixed(2)}</td>
+                    <td class="px-4 py-3 capitalize">${p.metodo_pago}</td>
+                    <td class="px-4 py-3">${p.fecha}</td>
+                </tr>
+            `).join('');
+
+            document.getElementById('listaPagos').innerHTML = html ||
+                '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No hay pagos registrados</td></tr>';
+        }
+
+        loadPagos();
+    </script>
+</body>
+</html>

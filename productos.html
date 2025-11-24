@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGV BRASA - Productos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { theme: { extend: { colors: { brand: '#0ea5e9' } } } }
+    </script>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white border-b">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-bold text-brand">SGV BRASA</h1>
+                <div class="flex gap-4">
+                    <a href="index.html" class="px-3 py-2 rounded hover:bg-gray-100">Dashboard</a>
+                    <a href="ventas.html" class="px-3 py-2 rounded hover:bg-gray-100">Ventas</a>
+                    <a href="pagos.html" class="px-3 py-2 rounded hover:bg-gray-100">Pagos</a>
+                    <a href="clientes.html" class="px-3 py-2 rounded hover:bg-gray-100">Clientes</a>
+                    <a href="productos.html" class="px-3 py-2 rounded bg-brand text-white">Productos</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-3xl font-bold">Productos</h2>
+            <button onclick="toggleForm()" class="bg-brand text-white px-6 py-2 rounded hover:bg-blue-600">
+                Nuevo Producto
+            </button>
+        </div>
+
+        <!-- Formulario Nuevo Producto -->
+        <div id="formProducto" class="hidden bg-white p-6 rounded-lg shadow mb-8">
+            <h3 class="text-xl font-bold mb-4">Crear Nuevo Producto</h3>
+            <form onsubmit="crearProducto(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Nombre</label>
+                    <input type="text" id="nombre" required class="w-full border rounded px-3 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Categoría</label>
+                    <input type="text" id="categoria" class="w-full border rounded px-3 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Precio Base</label>
+                    <input type="number" id="precio_base" step="0.01" required class="w-full border rounded px-3 py-2">
+                </div>
+                <div class="flex gap-4">
+                    <button type="submit" class="bg-brand text-white px-6 py-2 rounded hover:bg-blue-600">
+                        Crear Producto
+                    </button>
+                    <button type="button" onclick="toggleForm()" class="border px-6 py-2 rounded hover:bg-gray-100">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Lista de Productos -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b">
+                    <tr>
+                        <th class="px-4 py-3 text-left">ID</th>
+                        <th class="px-4 py-3 text-left">Nombre</th>
+                        <th class="px-4 py-3 text-left">Categoría</th>
+                        <th class="px-4 py-3 text-right">Precio Base</th>
+                    </tr>
+                </thead>
+                <tbody id="listaProductos">
+                    <tr><td colspan="4" class="px-4 py-8 text-center text-gray-500">No hay productos registrados</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function toggleForm() {
+            const form = document.getElementById('formProducto');
+            form.classList.toggle('hidden');
+        }
+
+        function crearProducto(e) {
+            e.preventDefault();
+
+            const productos = JSON.parse(localStorage.getItem('productos') || '[]');
+            const id = `PROD-2024-${String(productos.length + 1).padStart(3, '0')}`;
+
+            const producto = {
+                id,
+                nombre: document.getElementById('nombre').value,
+                categoria: document.getElementById('categoria').value,
+                precio_base: parseFloat(document.getElementById('precio_base').value)
+            };
+
+            productos.push(producto);
+            localStorage.setItem('productos', JSON.stringify(productos));
+
+            alert('✅ Producto creado exitosamente');
+            toggleForm();
+            e.target.reset();
+            loadProductos();
+        }
+
+        function loadProductos() {
+            const productos = JSON.parse(localStorage.getItem('productos') || '[]');
+
+            const html = productos.reverse().map(p => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-4 py-3 font-mono text-sm">${p.id}</td>
+                    <td class="px-4 py-3 font-semibold">${p.nombre}</td>
+                    <td class="px-4 py-3">${p.categoria || '-'}</td>
+                    <td class="px-4 py-3 text-right font-semibold">S/ ${p.precio_base.toFixed(2)}</td>
+                </tr>
+            `).join('');
+
+            document.getElementById('listaProductos').innerHTML = html ||
+                '<tr><td colspan="4" class="px-4 py-8 text-center text-gray-500">No hay productos registrados</td></tr>';
+        }
+
+        loadProductos();
+    </script>
+</body>
+</html>

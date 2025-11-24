@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGV BRASA - Ventas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { theme: { extend: { colors: { brand: '#0ea5e9' } } } }
+    </script>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white border-b">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-bold text-brand">SGV BRASA</h1>
+                <div class="flex gap-4">
+                    <a href="index.html" class="px-3 py-2 rounded hover:bg-gray-100">Dashboard</a>
+                    <a href="ventas.html" class="px-3 py-2 rounded bg-brand text-white">Ventas</a>
+                    <a href="pagos.html" class="px-3 py-2 rounded hover:bg-gray-100">Pagos</a>
+                    <a href="clientes.html" class="px-3 py-2 rounded hover:bg-gray-100">Clientes</a>
+                    <a href="productos.html" class="px-3 py-2 rounded hover:bg-gray-100">Productos</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-3xl font-bold">Ventas</h2>
+            <button onclick="toggleForm()" class="bg-brand text-white px-6 py-2 rounded hover:bg-blue-600">
+                Nueva Venta
+            </button>
+        </div>
+
+        <!-- Formulario Nueva Venta -->
+        <div id="formVenta" class="hidden bg-white p-6 rounded-lg shadow mb-8">
+            <h3 class="text-xl font-bold mb-4">Crear Nueva Venta</h3>
+            <form onsubmit="crearVenta(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Cliente</label>
+                    <input type="text" id="cliente_nombre" required class="w-full border rounded px-3 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Producto</label>
+                    <input type="text" id="producto_nombre" required class="w-full border rounded px-3 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Monto Total</label>
+                    <input type="number" id="monto_total" step="0.01" required class="w-full border rounded px-3 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Tipo de Pago</label>
+                    <select id="tipo_pago" onchange="toggleCuotas()" class="w-full border rounded px-3 py-2">
+                        <option value="contado">Contado</option>
+                        <option value="cuotas">Cuotas</option>
+                    </select>
+                </div>
+                <div id="divCuotas" class="hidden">
+                    <label class="block text-sm font-medium mb-1">Número de Cuotas</label>
+                    <input type="number" id="num_cuotas" min="2" value="3" class="w-full border rounded px-3 py-2">
+                </div>
+                <div class="flex gap-4">
+                    <button type="submit" class="bg-brand text-white px-6 py-2 rounded hover:bg-blue-600">
+                        Crear Venta
+                    </button>
+                    <button type="button" onclick="toggleForm()" class="border px-6 py-2 rounded hover:bg-gray-100">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Lista de Ventas -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b">
+                    <tr>
+                        <th class="px-4 py-3 text-left">ID</th>
+                        <th class="px-4 py-3 text-left">Cliente</th>
+                        <th class="px-4 py-3 text-left">Producto</th>
+                        <th class="px-4 py-3 text-right">Monto Total</th>
+                        <th class="px-4 py-3 text-right">Pagado</th>
+                        <th class="px-4 py-3 text-right">Saldo</th>
+                        <th class="px-4 py-3 text-center">Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="listaVentas">
+                    <tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">No hay ventas registradas</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function toggleForm() {
+            const form = document.getElementById('formVenta');
+            form.classList.toggle('hidden');
+        }
+
+        function toggleCuotas() {
+            const tipoPago = document.getElementById('tipo_pago').value;
+            const divCuotas = document.getElementById('divCuotas');
+            divCuotas.classList.toggle('hidden', tipoPago === 'contado');
+        }
+
+        function crearVenta(e) {
+            e.preventDefault();
+
+            const ventas = JSON.parse(localStorage.getItem('ventas') || '[]');
+            const id = `V-2024-${String(ventas.length + 1).padStart(3, '0')}`;
+
+            const venta = {
+                id,
+                fecha: new Date().toISOString().split('T')[0],
+                cliente_nombre: document.getElementById('cliente_nombre').value,
+                producto_nombre: document.getElementById('producto_nombre').value,
+                monto_total: parseFloat(document.getElementById('monto_total').value),
+                tipo_pago: document.getElementById('tipo_pago').value,
+                num_cuotas: document.getElementById('tipo_pago').value === 'cuotas'
+                    ? parseInt(document.getElementById('num_cuotas').value)
+                    : 1,
+                monto_pagado: 0,
+                estado: 'PENDIENTE'
+            };
+
+            ventas.push(venta);
+            localStorage.setItem('ventas', JSON.stringify(ventas));
+
+            alert('✅ Venta creada exitosamente');
+            toggleForm();
+            e.target.reset();
+            loadVentas();
+        }
+
+        function loadVentas() {
+            const ventas = JSON.parse(localStorage.getItem('ventas') || '[]');
+            const pagos = JSON.parse(localStorage.getItem('pagos') || '[]');
+
+            // Calcular monto pagado
+            ventas.forEach(venta => {
+                const pagosVenta = pagos.filter(p => p.venta_id === venta.id);
+                venta.monto_pagado = pagosVenta.reduce((sum, p) => sum + parseFloat(p.monto || 0), 0);
+                venta.saldo_pendiente = venta.monto_total - venta.monto_pagado;
+                venta.estado = venta.saldo_pendiente <= 0 ? 'PAGADO' : 'PENDIENTE';
+            });
+
+            const html = ventas.reverse().map(v => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-4 py-3 font-mono text-sm">${v.id}</td>
+                    <td class="px-4 py-3">${v.cliente_nombre}</td>
+                    <td class="px-4 py-3">${v.producto_nombre}</td>
+                    <td class="px-4 py-3 text-right font-semibold">S/ ${v.monto_total.toFixed(2)}</td>
+                    <td class="px-4 py-3 text-right text-green-600">S/ ${v.monto_pagado.toFixed(2)}</td>
+                    <td class="px-4 py-3 text-right text-yellow-600">S/ ${v.saldo_pendiente.toFixed(2)}</td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="px-2 py-1 rounded text-xs font-semibold ${
+                            v.estado === 'PAGADO' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                        }">
+                            ${v.estado}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+
+            document.getElementById('listaVentas').innerHTML = html ||
+                '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">No hay ventas registradas</td></tr>';
+        }
+
+        loadVentas();
+    </script>
+</body>
+</html>

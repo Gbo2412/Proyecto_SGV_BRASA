@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGV BRASA - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: '#0ea5e9',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white border-b">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-bold text-brand">SGV BRASA</h1>
+                <div class="flex gap-4">
+                    <a href="index.html" class="px-3 py-2 rounded bg-brand text-white">Dashboard</a>
+                    <a href="ventas.html" class="px-3 py-2 rounded hover:bg-gray-100">Ventas</a>
+                    <a href="pagos.html" class="px-3 py-2 rounded hover:bg-gray-100">Pagos</a>
+                    <a href="clientes.html" class="px-3 py-2 rounded hover:bg-gray-100">Clientes</a>
+                    <a href="productos.html" class="px-3 py-2 rounded hover:bg-gray-100">Productos</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Dashboard Content -->
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <h2 class="text-3xl font-bold mb-8">Dashboard</h2>
+
+        <!-- KPIs -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="text-sm text-gray-500">Ventas Totales</div>
+                <div class="text-3xl font-bold" id="totalVentas">0</div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="text-sm text-gray-500">Monto Total</div>
+                <div class="text-3xl font-bold" id="montoTotal">S/ 0</div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="text-sm text-gray-500">Saldo Pendiente</div>
+                <div class="text-3xl font-bold text-yellow-600" id="saldoPendiente">S/ 0</div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="text-sm text-gray-500">Ventas Pagadas</div>
+                <div class="text-3xl font-bold text-green-600" id="ventasPagadas">0</div>
+            </div>
+        </div>
+
+        <!-- Últimas Ventas -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-xl font-bold mb-4">Últimas Ventas</h3>
+            <div id="ultimasVentas" class="space-y-2">
+                <p class="text-gray-500">No hay ventas registradas</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Cargar datos del Dashboard
+        function loadDashboard() {
+            const ventas = JSON.parse(localStorage.getItem('ventas') || '[]');
+            const pagos = JSON.parse(localStorage.getItem('pagos') || '[]');
+
+            // Calcular KPIs
+            const totalVentas = ventas.length;
+            const montoTotal = ventas.reduce((sum, v) => sum + parseFloat(v.monto_total || 0), 0);
+
+            // Calcular monto pagado por venta
+            ventas.forEach(venta => {
+                const pagosVenta = pagos.filter(p => p.venta_id === venta.id);
+                venta.monto_pagado = pagosVenta.reduce((sum, p) => sum + parseFloat(p.monto || 0), 0);
+                venta.saldo_pendiente = venta.monto_total - venta.monto_pagado;
+                venta.estado = venta.saldo_pendiente <= 0 ? 'PAGADO' : 'PENDIENTE';
+            });
+
+            const saldoPendiente = ventas.reduce((sum, v) => sum + v.saldo_pendiente, 0);
+            const ventasPagadas = ventas.filter(v => v.estado === 'PAGADO').length;
+
+            // Actualizar UI
+            document.getElementById('totalVentas').textContent = totalVentas;
+            document.getElementById('montoTotal').textContent = `S/ ${montoTotal.toFixed(2)}`;
+            document.getElementById('saldoPendiente').textContent = `S/ ${saldoPendiente.toFixed(2)}`;
+            document.getElementById('ventasPagadas').textContent = ventasPagadas;
+
+            // Mostrar últimas 5 ventas
+            const ultimasVentas = ventas.slice(-5).reverse();
+            const html = ultimasVentas.map(v => `
+                <div class="flex justify-between items-center p-3 border rounded">
+                    <div>
+                        <div class="font-semibold">${v.id}</div>
+                        <div class="text-sm text-gray-500">${v.cliente_nombre} - ${v.producto_nombre}</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-bold">S/ ${parseFloat(v.monto_total).toFixed(2)}</div>
+                        <div class="text-sm ${v.estado === 'PAGADO' ? 'text-green-600' : 'text-yellow-600'}">
+                            ${v.estado}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('ultimasVentas').innerHTML = html || '<p class="text-gray-500">No hay ventas registradas</p>';
+        }
+
+        // Cargar dashboard al inicio
+        loadDashboard();
+    </script>
+</body>
+</html>
