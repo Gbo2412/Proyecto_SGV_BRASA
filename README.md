@@ -6,6 +6,8 @@ MVP rápido funcional para validar la idea del Sistema de Gestión de Ventas BRA
 
 ✅ Dashboard con KPIs en tiempo real
 ✅ Crear ventas (contado y cuotas)
+✅ **Cliente existente o nuevo:** Selector desplegable con opción de crear cliente al momento de la venta
+✅ **Productos con auto-completado:** Al seleccionar un producto, el monto se completa automáticamente (editable)
 ✅ Registrar pagos
 ✅ Actualización automática de estados
 ✅ Cálculo automático de saldo pendiente
@@ -88,20 +90,38 @@ git push -u origin main
 
 ## 📝 Cómo Probar
 
-1. **Crear una venta:**
-   - Ir a "Ventas"
-   - Click "Nueva Venta"
-   - Llenar formulario (prueba con 3 cuotas)
+1. **Crear productos primero:**
+   - Ir a "Productos"
+   - Click "Nuevo Producto"
+   - Ejemplo: Nombre="Parrilla Familiar", Precio=600
    - Guardar
 
-2. **Registrar un pago:**
+2. **Crear una venta con cliente nuevo:**
+   - Ir a "Ventas"
+   - Click "Nueva Venta"
+   - En Cliente, seleccionar "+ Crear nuevo cliente"
+   - Llenar datos del cliente
+   - Seleccionar producto (el monto se completa automáticamente)
+   - Editar monto si es necesario
+   - Seleccionar tipo de pago (prueba con 3 cuotas)
+   - Guardar
+   - ✨ El cliente se crea automáticamente
+
+3. **Crear venta con cliente existente:**
+   - Click "Nueva Venta"
+   - Seleccionar cliente del desplegable
+   - Seleccionar producto
+   - El monto se auto-completa
+   - Guardar
+
+4. **Registrar un pago:**
    - Ir a "Pagos"
    - Click "Registrar Pago"
    - Seleccionar la venta
    - Ingresar monto
    - Guardar
 
-3. **Ver actualización automática:**
+5. **Ver actualización automática:**
    - Volver a "Dashboard"
    - Ver KPIs actualizados
    - Ver estado de venta actualizado

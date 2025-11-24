@@ -38,18 +38,53 @@
         <div id="formVenta" class="hidden bg-white p-6 rounded-lg shadow mb-8">
             <h3 class="text-xl font-bold mb-4">Crear Nueva Venta</h3>
             <form onsubmit="crearVenta(event)" class="space-y-4">
+                <!-- Cliente: Selector con opción de crear nuevo -->
                 <div>
-                    <label class="block text-sm font-medium mb-1">Cliente</label>
-                    <input type="text" id="cliente_nombre" required class="w-full border rounded px-3 py-2">
+                    <label class="block text-sm font-medium mb-1">Cliente *</label>
+                    <select id="cliente_select" onchange="handleClienteChange()" required class="w-full border rounded px-3 py-2">
+                        <option value="">Seleccionar cliente...</option>
+                        <option value="nuevo">+ Crear nuevo cliente</option>
+                    </select>
+                    <p class="text-sm text-gray-500 mt-1">Selecciona un cliente existente o crea uno nuevo</p>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1">Producto</label>
-                    <input type="text" id="producto_nombre" required class="w-full border rounded px-3 py-2">
+
+                <!-- Formulario de nuevo cliente (oculto por defecto) -->
+                <div id="nuevoClienteForm" class="hidden bg-blue-50 border border-blue-200 p-4 rounded space-y-3">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-semibold text-blue-900">Nuevo Cliente</h4>
+                        <button type="button" onclick="cancelarNuevoCliente()" class="text-sm text-blue-600 hover:text-blue-800">
+                            Cancelar
+                        </button>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Nombre del Cliente *</label>
+                        <input type="text" id="nuevo_cliente_nombre" class="w-full border rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Email</label>
+                        <input type="email" id="nuevo_cliente_email" class="w-full border rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Teléfono</label>
+                        <input type="tel" id="nuevo_cliente_telefono" class="w-full border rounded px-3 py-2">
+                    </div>
                 </div>
+
+                <!-- Producto: Selector con auto-completado de monto -->
                 <div>
-                    <label class="block text-sm font-medium mb-1">Monto Total</label>
+                    <label class="block text-sm font-medium mb-1">Producto *</label>
+                    <select id="producto_select" onchange="handleProductoChange()" required class="w-full border rounded px-3 py-2">
+                        <option value="">Seleccionar producto...</option>
+                    </select>
+                    <p class="text-sm text-gray-500 mt-1">El monto se completará automáticamente pero puedes editarlo</p>
+                </div>
+
+                <!-- Monto Total (editable, pre-cargado del producto) -->
+                <div>
+                    <label class="block text-sm font-medium mb-1">Monto Total *</label>
                     <input type="number" id="monto_total" step="0.01" required class="w-full border rounded px-3 py-2">
                 </div>
+
                 <div>
                     <label class="block text-sm font-medium mb-1">Tipo de Pago</label>
                     <select id="tipo_pago" onchange="toggleCuotas()" class="w-full border rounded px-3 py-2">
@@ -57,10 +92,12 @@
                         <option value="cuotas">Cuotas</option>
                     </select>
                 </div>
+
                 <div id="divCuotas" class="hidden">
                     <label class="block text-sm font-medium mb-1">Número de Cuotas</label>
                     <input type="number" id="num_cuotas" min="2" value="3" class="w-full border rounded px-3 py-2">
                 </div>
+
                 <div class="flex gap-4">
                     <button type="submit" class="bg-brand text-white px-6 py-2 rounded hover:bg-blue-600">
                         Crear Venta
@@ -94,9 +131,16 @@
     </div>
 
     <script>
+        let esNuevoCliente = false;
+        let productoSeleccionado = null;
+
         function toggleForm() {
             const form = document.getElementById('formVenta');
             form.classList.toggle('hidden');
+            if (!form.classList.contains('hidden')) {
+                cargarClientesEnSelector();
+                cargarProductosEnSelector();
+            }
         }
 
         function toggleCuotas() {
@@ -105,17 +149,122 @@
             divCuotas.classList.toggle('hidden', tipoPago === 'contado');
         }
 
+        function cargarClientesEnSelector() {
+            const clientes = JSON.parse(localStorage.getItem('clientes') || '[]');
+            const select = document.getElementById('cliente_select');
+
+            let options = '<option value="">Seleccionar cliente...</option>';
+            options += '<option value="nuevo">+ Crear nuevo cliente</option>';
+
+            clientes.forEach(c => {
+                options += `<option value="${c.id}">${c.nombre}${c.email ? ' - ' + c.email : ''}</option>`;
+            });
+
+            select.innerHTML = options;
+        }
+
+        function cargarProductosEnSelector() {
+            const productos = JSON.parse(localStorage.getItem('productos') || '[]');
+            const select = document.getElementById('producto_select');
+
+            let options = '<option value="">Seleccionar producto...</option>';
+
+            productos.forEach(p => {
+                options += `<option value="${p.id}" data-nombre="${p.nombre}" data-precio="${p.precio_base}">
+                    ${p.nombre} - S/ ${p.precio_base.toFixed(2)}
+                </option>`;
+            });
+
+            select.innerHTML = options;
+        }
+
+        function handleClienteChange() {
+            const select = document.getElementById('cliente_select');
+            const nuevoForm = document.getElementById('nuevoClienteForm');
+
+            if (select.value === 'nuevo') {
+                esNuevoCliente = true;
+                nuevoForm.classList.remove('hidden');
+                document.getElementById('nuevo_cliente_nombre').required = true;
+            } else {
+                esNuevoCliente = false;
+                nuevoForm.classList.add('hidden');
+                document.getElementById('nuevo_cliente_nombre').required = false;
+            }
+        }
+
+        function cancelarNuevoCliente() {
+            document.getElementById('cliente_select').value = '';
+            document.getElementById('nuevoClienteForm').classList.add('hidden');
+            esNuevoCliente = false;
+            document.getElementById('nuevo_cliente_nombre').required = false;
+        }
+
+        function handleProductoChange() {
+            const select = document.getElementById('producto_select');
+            const option = select.options[select.selectedIndex];
+
+            if (option.value) {
+                const precio = parseFloat(option.dataset.precio);
+                document.getElementById('monto_total').value = precio.toFixed(2);
+            }
+        }
+
         function crearVenta(e) {
             e.preventDefault();
 
             const ventas = JSON.parse(localStorage.getItem('ventas') || '[]');
+            const clientes = JSON.parse(localStorage.getItem('clientes') || '[]');
+
+            let clienteId, clienteNombre;
+
+            // Gestión de cliente: nuevo o existente
+            if (esNuevoCliente) {
+                const nombre = document.getElementById('nuevo_cliente_nombre').value;
+                const email = document.getElementById('nuevo_cliente_email').value;
+                const telefono = document.getElementById('nuevo_cliente_telefono').value;
+
+                if (!nombre) {
+                    alert('❌ El nombre del cliente es requerido');
+                    return;
+                }
+
+                // Crear nuevo cliente
+                clienteId = `CLI-2024-${String(clientes.length + 1).padStart(3, '0')}`;
+                const nuevoCliente = {
+                    id: clienteId,
+                    nombre: nombre,
+                    email: email,
+                    telefono: telefono
+                };
+
+                clientes.push(nuevoCliente);
+                localStorage.setItem('clientes', JSON.stringify(clientes));
+                clienteNombre = nombre;
+            } else {
+                clienteId = document.getElementById('cliente_select').value;
+                if (!clienteId) {
+                    alert('❌ Debes seleccionar un cliente');
+                    return;
+                }
+                const cliente = clientes.find(c => c.id === clienteId);
+                clienteNombre = cliente.nombre;
+            }
+
+            // Obtener producto seleccionado
+            const productoSelect = document.getElementById('producto_select');
+            const productoOption = productoSelect.options[productoSelect.selectedIndex];
+            const productoNombre = productoOption.dataset.nombre;
+
             const id = `V-2024-${String(ventas.length + 1).padStart(3, '0')}`;
 
             const venta = {
                 id,
                 fecha: new Date().toISOString().split('T')[0],
-                cliente_nombre: document.getElementById('cliente_nombre').value,
-                producto_nombre: document.getElementById('producto_nombre').value,
+                cliente_id: clienteId,
+                cliente_nombre: clienteNombre,
+                producto_id: productoSelect.value,
+                producto_nombre: productoNombre,
                 monto_total: parseFloat(document.getElementById('monto_total').value),
                 tipo_pago: document.getElementById('tipo_pago').value,
                 num_cuotas: document.getElementById('tipo_pago').value === 'cuotas'
@@ -128,9 +277,14 @@
             ventas.push(venta);
             localStorage.setItem('ventas', JSON.stringify(ventas));
 
-            alert('✅ Venta creada exitosamente');
+            alert('✅ Venta creada exitosamente' + (esNuevoCliente ? ' (Cliente nuevo creado)' : ''));
+
+            // Reset form
             toggleForm();
             e.target.reset();
+            document.getElementById('nuevoClienteForm').classList.add('hidden');
+            esNuevoCliente = false;
+
             loadVentas();
         }
 
