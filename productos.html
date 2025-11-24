@@ -36,10 +36,12 @@
 
         <!-- Formulario Nuevo Producto -->
         <div id="formProducto" class="hidden bg-white p-6 rounded-lg shadow mb-8">
-            <h3 class="text-xl font-bold mb-4">Crear Nuevo Producto</h3>
-            <form onsubmit="crearProducto(event)" class="space-y-4">
+            <h3 class="text-xl font-bold mb-4" id="formTitle">Crear Nuevo Producto</h3>
+            <form onsubmit="guardarProducto(event)" class="space-y-4">
+                <input type="hidden" id="producto_id">
+                <input type="hidden" id="edit_mode" value="false">
                 <div>
-                    <label class="block text-sm font-medium mb-1">Nombre</label>
+                    <label class="block text-sm font-medium mb-1">Nombre *</label>
                     <input type="text" id="nombre" required class="w-full border rounded px-3 py-2">
                 </div>
                 <div>
@@ -47,14 +49,14 @@
                     <input type="text" id="categoria" class="w-full border rounded px-3 py-2">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-1">Precio Base</label>
+                    <label class="block text-sm font-medium mb-1">Precio Base *</label>
                     <input type="number" id="precio_base" step="0.01" required class="w-full border rounded px-3 py-2">
                 </div>
                 <div class="flex gap-4">
-                    <button type="submit" class="bg-brand text-white px-6 py-2 rounded hover:bg-blue-600">
+                    <button type="submit" id="btnGuardar" class="bg-brand text-white px-6 py-2 rounded hover:bg-blue-600">
                         Crear Producto
                     </button>
-                    <button type="button" onclick="toggleForm()" class="border px-6 py-2 rounded hover:bg-gray-100">
+                    <button type="button" onclick="cancelarForm()" class="border px-6 py-2 rounded hover:bg-gray-100">
                         Cancelar
                     </button>
                 </div>
@@ -70,10 +72,11 @@
                         <th class="px-4 py-3 text-left">Nombre</th>
                         <th class="px-4 py-3 text-left">Categoría</th>
                         <th class="px-4 py-3 text-right">Precio Base</th>
+                        <th class="px-4 py-3 text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="listaProductos">
-                    <tr><td colspan="4" class="px-4 py-8 text-center text-gray-500">No hay productos registrados</td></tr>
+                    <tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No hay productos registrados</td></tr>
                 </tbody>
             </table>
         </div>
@@ -83,28 +86,81 @@
         function toggleForm() {
             const form = document.getElementById('formProducto');
             form.classList.toggle('hidden');
+            if (!form.classList.contains('hidden')) {
+                document.getElementById('formTitle').textContent = 'Crear Nuevo Producto';
+                document.getElementById('btnGuardar').textContent = 'Crear Producto';
+                document.getElementById('edit_mode').value = 'false';
+            }
         }
 
-        function crearProducto(e) {
+        function cancelarForm() {
+            document.getElementById('formProducto').classList.add('hidden');
+            document.querySelector('form').reset();
+        }
+
+        function guardarProducto(e) {
             e.preventDefault();
 
             const productos = JSON.parse(localStorage.getItem('productos') || '[]');
-            const id = `PROD-2024-${String(productos.length + 1).padStart(3, '0')}`;
+            const editMode = document.getElementById('edit_mode').value === 'true';
+            const productoId = document.getElementById('producto_id').value;
+            const añoActual = new Date().getFullYear();
 
-            const producto = {
-                id,
-                nombre: document.getElementById('nombre').value,
-                categoria: document.getElementById('categoria').value,
-                precio_base: parseFloat(document.getElementById('precio_base').value)
-            };
+            if (editMode) {
+                // Modo edición
+                const productoIndex = productos.findIndex(p => p.id === productoId);
+                if (productoIndex !== -1) {
+                    productos[productoIndex] = {
+                        ...productos[productoIndex],
+                        nombre: document.getElementById('nombre').value,
+                        categoria: document.getElementById('categoria').value,
+                        precio_base: parseFloat(document.getElementById('precio_base').value)
+                    };
+                    localStorage.setItem('productos', JSON.stringify(productos));
+                    alert('✅ Producto actualizado exitosamente');
+                }
+            } else {
+                // Modo creación
+                const id = `PROD-${añoActual}-${String(productos.length + 1).padStart(3, '0')}`;
 
-            productos.push(producto);
-            localStorage.setItem('productos', JSON.stringify(productos));
+                const producto = {
+                    id,
+                    nombre: document.getElementById('nombre').value,
+                    categoria: document.getElementById('categoria').value,
+                    precio_base: parseFloat(document.getElementById('precio_base').value)
+                };
 
-            alert('✅ Producto creado exitosamente');
-            toggleForm();
+                productos.push(producto);
+                localStorage.setItem('productos', JSON.stringify(productos));
+
+                alert('✅ Producto creado exitosamente');
+            }
+
+            cancelarForm();
             e.target.reset();
             loadProductos();
+        }
+
+        function editarProducto(id) {
+            const productos = JSON.parse(localStorage.getItem('productos') || '[]');
+            const producto = productos.find(p => p.id === id);
+
+            if (!producto) return;
+
+            // Mostrar formulario
+            document.getElementById('formProducto').classList.remove('hidden');
+            document.getElementById('formTitle').textContent = 'Editar Producto';
+            document.getElementById('btnGuardar').textContent = 'Actualizar Producto';
+            document.getElementById('edit_mode').value = 'true';
+            document.getElementById('producto_id').value = id;
+
+            // Llenar campos
+            document.getElementById('nombre').value = producto.nombre;
+            document.getElementById('categoria').value = producto.categoria || '';
+            document.getElementById('precio_base').value = producto.precio_base;
+
+            // Scroll al formulario
+            document.getElementById('formProducto').scrollIntoView({ behavior: 'smooth' });
         }
 
         function loadProductos() {
@@ -116,11 +172,16 @@
                     <td class="px-4 py-3 font-semibold">${p.nombre}</td>
                     <td class="px-4 py-3">${p.categoria || '-'}</td>
                     <td class="px-4 py-3 text-right font-semibold">S/ ${p.precio_base.toFixed(2)}</td>
+                    <td class="px-4 py-3 text-center">
+                        <button onclick="editarProducto('${p.id}')" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            Editar
+                        </button>
+                    </td>
                 </tr>
             `).join('');
 
             document.getElementById('listaProductos').innerHTML = html ||
-                '<tr><td colspan="4" class="px-4 py-8 text-center text-gray-500">No hay productos registrados</td></tr>';
+                '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No hay productos registrados</td></tr>';
         }
 
         loadProductos();

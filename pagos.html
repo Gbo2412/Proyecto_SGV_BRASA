@@ -160,7 +160,8 @@
                 return;
             }
 
-            const id = `P-2024-${String(pagos.length + 1).padStart(3, '0')}`;
+            const añoActual = new Date().getFullYear();
+            const id = `P-${añoActual}-${String(pagos.length + 1).padStart(3, '0')}`;
 
             const pago = {
                 id,

@@ -4,12 +4,16 @@ MVP rápido funcional para validar la idea del Sistema de Gestión de Ventas BRA
 
 ## 🚀 Características
 
-✅ Dashboard con KPIs en tiempo real
-✅ Crear ventas (contado y cuotas)
+✅ Dashboard con KPIs en tiempo real y gráfico interactivo (día/mes/año)
+✅ Crear ventas (contado y cuotas) con fecha editable
 ✅ **Cliente existente o nuevo:** Selector desplegable con opción de crear cliente al momento de la venta
+✅ **Producto existente o nuevo:** Selector desplegable con opción de crear producto al momento de la venta
 ✅ **Productos con auto-completado:** Al seleccionar un producto, el monto se completa automáticamente (editable)
-✅ Registrar pagos
-✅ Actualización automática de estados
+✅ **Editar registros:** Editar ventas, clientes y productos después de crearlos
+✅ **IDs dinámicos por año:** Formato V-2025-001, CLI-2025-001, etc.
+✅ **Fecha de creación:** Se guarda automáticamente para clientes
+✅ Registrar pagos con validación
+✅ Actualización automática de estados (PAGADO/PENDIENTE)
 ✅ Cálculo automático de saldo pendiente
 ✅ Validación (no exceder saldo)
 ✅ Responsive design
@@ -96,23 +100,31 @@ git push -u origin main
    - Ejemplo: Nombre="Parrilla Familiar", Precio=600
    - Guardar
 
-2. **Crear una venta con cliente nuevo:**
+2. **Crear una venta con cliente nuevo y producto nuevo:**
    - Ir a "Ventas"
    - Click "Nueva Venta"
+   - La fecha de hoy aparece por defecto (puedes cambiarla)
    - En Cliente, seleccionar "+ Crear nuevo cliente"
    - Llenar datos del cliente
-   - Seleccionar producto (el monto se completa automáticamente)
-   - Editar monto si es necesario
+   - En Producto, seleccionar "+ Crear nuevo producto"
+   - Llenar nombre y precio del producto
+   - El monto se completa automáticamente (puedes editarlo)
    - Seleccionar tipo de pago (prueba con 3 cuotas)
    - Guardar
-   - ✨ El cliente se crea automáticamente
+   - ✨ El cliente y producto se crean automáticamente
+   - Nota: El ID será V-2025-001 (año actual)
 
-3. **Crear venta con cliente existente:**
+3. **Crear venta con cliente y producto existente:**
    - Click "Nueva Venta"
    - Seleccionar cliente del desplegable
-   - Seleccionar producto
+   - Seleccionar producto del desplegable
    - El monto se auto-completa
    - Guardar
+
+3.5. **Editar una venta:**
+   - En la lista de ventas, click "Editar"
+   - Modificar los campos necesarios
+   - Click "Actualizar Venta"
 
 4. **Registrar un pago:**
    - Ir a "Pagos"
@@ -125,6 +137,13 @@ git push -u origin main
    - Volver a "Dashboard"
    - Ver KPIs actualizados
    - Ver estado de venta actualizado
+   - Usar el gráfico para ver ventas por día, mes o año
+
+6. **Editar clientes y productos:**
+   - Ir a "Clientes" o "Productos"
+   - Click "Editar" en cualquier registro
+   - Modificar los datos
+   - Guardar cambios
 
 ## ⚠️ Limitaciones del MVP
 

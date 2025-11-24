@@ -36,10 +36,12 @@
 
         <!-- Formulario Nuevo Cliente -->
         <div id="formCliente" class="hidden bg-white p-6 rounded-lg shadow mb-8">
-            <h3 class="text-xl font-bold mb-4">Crear Nuevo Cliente</h3>
-            <form onsubmit="crearCliente(event)" class="space-y-4">
+            <h3 class="text-xl font-bold mb-4" id="formTitle">Crear Nuevo Cliente</h3>
+            <form onsubmit="guardarCliente(event)" class="space-y-4">
+                <input type="hidden" id="cliente_id">
+                <input type="hidden" id="edit_mode" value="false">
                 <div>
-                    <label class="block text-sm font-medium mb-1">Nombre</label>
+                    <label class="block text-sm font-medium mb-1">Nombre *</label>
                     <input type="text" id="nombre" required class="w-full border rounded px-3 py-2">
                 </div>
                 <div>
@@ -51,10 +53,10 @@
                     <input type="tel" id="telefono" class="w-full border rounded px-3 py-2">
                 </div>
                 <div class="flex gap-4">
-                    <button type="submit" class="bg-brand text-white px-6 py-2 rounded hover:bg-blue-600">
+                    <button type="submit" id="btnGuardar" class="bg-brand text-white px-6 py-2 rounded hover:bg-blue-600">
                         Crear Cliente
                     </button>
-                    <button type="button" onclick="toggleForm()" class="border px-6 py-2 rounded hover:bg-gray-100">
+                    <button type="button" onclick="cancelarForm()" class="border px-6 py-2 rounded hover:bg-gray-100">
                         Cancelar
                     </button>
                 </div>
@@ -70,10 +72,12 @@
                         <th class="px-4 py-3 text-left">Nombre</th>
                         <th class="px-4 py-3 text-left">Email</th>
                         <th class="px-4 py-3 text-left">Teléfono</th>
+                        <th class="px-4 py-3 text-left">Fecha Creación</th>
+                        <th class="px-4 py-3 text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="listaClientes">
-                    <tr><td colspan="4" class="px-4 py-8 text-center text-gray-500">No hay clientes registrados</td></tr>
+                    <tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No hay clientes registrados</td></tr>
                 </tbody>
             </table>
         </div>
@@ -83,28 +87,82 @@
         function toggleForm() {
             const form = document.getElementById('formCliente');
             form.classList.toggle('hidden');
+            if (!form.classList.contains('hidden')) {
+                document.getElementById('formTitle').textContent = 'Crear Nuevo Cliente';
+                document.getElementById('btnGuardar').textContent = 'Crear Cliente';
+                document.getElementById('edit_mode').value = 'false';
+            }
         }
 
-        function crearCliente(e) {
+        function cancelarForm() {
+            document.getElementById('formCliente').classList.add('hidden');
+            document.querySelector('form').reset();
+        }
+
+        function guardarCliente(e) {
             e.preventDefault();
 
             const clientes = JSON.parse(localStorage.getItem('clientes') || '[]');
-            const id = `CLI-2024-${String(clientes.length + 1).padStart(3, '0')}`;
+            const editMode = document.getElementById('edit_mode').value === 'true';
+            const clienteId = document.getElementById('cliente_id').value;
+            const añoActual = new Date().getFullYear();
 
-            const cliente = {
-                id,
-                nombre: document.getElementById('nombre').value,
-                email: document.getElementById('email').value,
-                telefono: document.getElementById('telefono').value
-            };
+            if (editMode) {
+                // Modo edición
+                const clienteIndex = clientes.findIndex(c => c.id === clienteId);
+                if (clienteIndex !== -1) {
+                    clientes[clienteIndex] = {
+                        ...clientes[clienteIndex],
+                        nombre: document.getElementById('nombre').value,
+                        email: document.getElementById('email').value,
+                        telefono: document.getElementById('telefono').value
+                    };
+                    localStorage.setItem('clientes', JSON.stringify(clientes));
+                    alert('✅ Cliente actualizado exitosamente');
+                }
+            } else {
+                // Modo creación
+                const id = `CLI-${añoActual}-${String(clientes.length + 1).padStart(3, '0')}`;
 
-            clientes.push(cliente);
-            localStorage.setItem('clientes', JSON.stringify(clientes));
+                const cliente = {
+                    id,
+                    nombre: document.getElementById('nombre').value,
+                    email: document.getElementById('email').value,
+                    telefono: document.getElementById('telefono').value,
+                    fecha_creacion: new Date().toISOString().split('T')[0]
+                };
 
-            alert('✅ Cliente creado exitosamente');
-            toggleForm();
+                clientes.push(cliente);
+                localStorage.setItem('clientes', JSON.stringify(clientes));
+
+                alert('✅ Cliente creado exitosamente');
+            }
+
+            cancelarForm();
             e.target.reset();
             loadClientes();
+        }
+
+        function editarCliente(id) {
+            const clientes = JSON.parse(localStorage.getItem('clientes') || '[]');
+            const cliente = clientes.find(c => c.id === id);
+
+            if (!cliente) return;
+
+            // Mostrar formulario
+            document.getElementById('formCliente').classList.remove('hidden');
+            document.getElementById('formTitle').textContent = 'Editar Cliente';
+            document.getElementById('btnGuardar').textContent = 'Actualizar Cliente';
+            document.getElementById('edit_mode').value = 'true';
+            document.getElementById('cliente_id').value = id;
+
+            // Llenar campos
+            document.getElementById('nombre').value = cliente.nombre;
+            document.getElementById('email').value = cliente.email || '';
+            document.getElementById('telefono').value = cliente.telefono || '';
+
+            // Scroll al formulario
+            document.getElementById('formCliente').scrollIntoView({ behavior: 'smooth' });
         }
 
         function loadClientes() {
@@ -116,11 +174,17 @@
                     <td class="px-4 py-3 font-semibold">${c.nombre}</td>
                     <td class="px-4 py-3">${c.email || '-'}</td>
                     <td class="px-4 py-3">${c.telefono || '-'}</td>
+                    <td class="px-4 py-3">${c.fecha_creacion || '-'}</td>
+                    <td class="px-4 py-3 text-center">
+                        <button onclick="editarCliente('${c.id}')" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            Editar
+                        </button>
+                    </td>
                 </tr>
             `).join('');
 
             document.getElementById('listaClientes').innerHTML = html ||
-                '<tr><td colspan="4" class="px-4 py-8 text-center text-gray-500">No hay clientes registrados</td></tr>';
+                '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No hay clientes registrados</td></tr>';
         }
 
         loadClientes();

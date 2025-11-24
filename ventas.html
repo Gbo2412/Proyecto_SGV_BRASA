@@ -36,8 +36,18 @@
 
         <!-- Formulario Nueva Venta -->
         <div id="formVenta" class="hidden bg-white p-6 rounded-lg shadow mb-8">
-            <h3 class="text-xl font-bold mb-4">Crear Nueva Venta</h3>
-            <form onsubmit="crearVenta(event)" class="space-y-4">
+            <h3 class="text-xl font-bold mb-4" id="formTitle">Crear Nueva Venta</h3>
+            <form onsubmit="guardarVenta(event)" class="space-y-4">
+                <input type="hidden" id="venta_id">
+                <input type="hidden" id="edit_mode" value="false">
+
+                <!-- Fecha de Venta -->
+                <div>
+                    <label class="block text-sm font-medium mb-1">Fecha de Venta *</label>
+                    <input type="date" id="fecha_venta" required class="w-full border rounded px-3 py-2">
+                    <p class="text-sm text-gray-500 mt-1">Puedes modificar la fecha si es necesario</p>
+                </div>
+
                 <!-- Cliente: Selector con opción de crear nuevo -->
                 <div>
                     <label class="block text-sm font-medium mb-1">Cliente *</label>
@@ -70,13 +80,32 @@
                     </div>
                 </div>
 
-                <!-- Producto: Selector con auto-completado de monto -->
+                <!-- Producto: Selector con auto-completado de monto + opción crear nuevo -->
                 <div>
                     <label class="block text-sm font-medium mb-1">Producto *</label>
                     <select id="producto_select" onchange="handleProductoChange()" required class="w-full border rounded px-3 py-2">
                         <option value="">Seleccionar producto...</option>
+                        <option value="nuevo">+ Crear nuevo producto</option>
                     </select>
                     <p class="text-sm text-gray-500 mt-1">El monto se completará automáticamente pero puedes editarlo</p>
+                </div>
+
+                <!-- Formulario de nuevo producto (oculto por defecto) -->
+                <div id="nuevoProductoForm" class="hidden bg-green-50 border border-green-200 p-4 rounded space-y-3">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-semibold text-green-900">Nuevo Producto</h4>
+                        <button type="button" onclick="cancelarNuevoProducto()" class="text-sm text-green-600 hover:text-green-800">
+                            Cancelar
+                        </button>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Nombre del Producto *</label>
+                        <input type="text" id="nuevo_producto_nombre" class="w-full border rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Precio Base *</label>
+                        <input type="number" id="nuevo_producto_precio" step="0.01" class="w-full border rounded px-3 py-2">
+                    </div>
                 </div>
 
                 <!-- Monto Total (editable, pre-cargado del producto) -->
@@ -99,10 +128,10 @@
                 </div>
 
                 <div class="flex gap-4">
-                    <button type="submit" class="bg-brand text-white px-6 py-2 rounded hover:bg-blue-600">
+                    <button type="submit" id="btnGuardar" class="bg-brand text-white px-6 py-2 rounded hover:bg-blue-600">
                         Crear Venta
                     </button>
-                    <button type="button" onclick="toggleForm()" class="border px-6 py-2 rounded hover:bg-gray-100">
+                    <button type="button" onclick="cancelarForm()" class="border px-6 py-2 rounded hover:bg-gray-100">
                         Cancelar
                     </button>
                 </div>
@@ -115,16 +144,18 @@
                 <thead class="bg-gray-50 border-b">
                     <tr>
                         <th class="px-4 py-3 text-left">ID</th>
+                        <th class="px-4 py-3 text-left">Fecha</th>
                         <th class="px-4 py-3 text-left">Cliente</th>
                         <th class="px-4 py-3 text-left">Producto</th>
                         <th class="px-4 py-3 text-right">Monto Total</th>
                         <th class="px-4 py-3 text-right">Pagado</th>
                         <th class="px-4 py-3 text-right">Saldo</th>
                         <th class="px-4 py-3 text-center">Estado</th>
+                        <th class="px-4 py-3 text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="listaVentas">
-                    <tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">No hay ventas registradas</td></tr>
+                    <tr><td colspan="9" class="px-4 py-8 text-center text-gray-500">No hay ventas registradas</td></tr>
                 </tbody>
             </table>
         </div>
@@ -132,15 +163,29 @@
 
     <script>
         let esNuevoCliente = false;
-        let productoSeleccionado = null;
+        let esNuevoProducto = false;
 
         function toggleForm() {
             const form = document.getElementById('formVenta');
             form.classList.toggle('hidden');
             if (!form.classList.contains('hidden')) {
+                // Set today's date as default
+                document.getElementById('fecha_venta').valueAsDate = new Date();
                 cargarClientesEnSelector();
                 cargarProductosEnSelector();
+                document.getElementById('formTitle').textContent = 'Crear Nueva Venta';
+                document.getElementById('btnGuardar').textContent = 'Crear Venta';
+                document.getElementById('edit_mode').value = 'false';
             }
+        }
+
+        function cancelarForm() {
+            document.getElementById('formVenta').classList.add('hidden');
+            document.querySelector('form').reset();
+            document.getElementById('nuevoClienteForm').classList.add('hidden');
+            document.getElementById('nuevoProductoForm').classList.add('hidden');
+            esNuevoCliente = false;
+            esNuevoProducto = false;
         }
 
         function toggleCuotas() {
@@ -168,6 +213,7 @@
             const select = document.getElementById('producto_select');
 
             let options = '<option value="">Seleccionar producto...</option>';
+            options += '<option value="nuevo">+ Crear nuevo producto</option>';
 
             productos.forEach(p => {
                 options += `<option value="${p.id}" data-nombre="${p.nombre}" data-precio="${p.precio_base}">
@@ -203,18 +249,42 @@
         function handleProductoChange() {
             const select = document.getElementById('producto_select');
             const option = select.options[select.selectedIndex];
+            const nuevoForm = document.getElementById('nuevoProductoForm');
 
-            if (option.value) {
-                const precio = parseFloat(option.dataset.precio);
-                document.getElementById('monto_total').value = precio.toFixed(2);
+            if (select.value === 'nuevo') {
+                esNuevoProducto = true;
+                nuevoForm.classList.remove('hidden');
+                document.getElementById('nuevo_producto_nombre').required = true;
+                document.getElementById('nuevo_producto_precio').required = true;
+            } else {
+                esNuevoProducto = false;
+                nuevoForm.classList.add('hidden');
+                document.getElementById('nuevo_producto_nombre').required = false;
+                document.getElementById('nuevo_producto_precio').required = false;
+
+                if (option.value) {
+                    const precio = parseFloat(option.dataset.precio);
+                    document.getElementById('monto_total').value = precio.toFixed(2);
+                }
             }
         }
 
-        function crearVenta(e) {
+        function cancelarNuevoProducto() {
+            document.getElementById('producto_select').value = '';
+            document.getElementById('nuevoProductoForm').classList.add('hidden');
+            esNuevoProducto = false;
+            document.getElementById('nuevo_producto_nombre').required = false;
+            document.getElementById('nuevo_producto_precio').required = false;
+        }
+
+        function guardarVenta(e) {
             e.preventDefault();
 
             const ventas = JSON.parse(localStorage.getItem('ventas') || '[]');
             const clientes = JSON.parse(localStorage.getItem('clientes') || '[]');
+            const productos = JSON.parse(localStorage.getItem('productos') || '[]');
+            const editMode = document.getElementById('edit_mode').value === 'true';
+            const ventaId = document.getElementById('venta_id').value;
 
             let clienteId, clienteNombre;
 
@@ -229,13 +299,15 @@
                     return;
                 }
 
-                // Crear nuevo cliente
-                clienteId = `CLI-2024-${String(clientes.length + 1).padStart(3, '0')}`;
+                // Crear nuevo cliente con año dinámico y fecha de creación
+                const añoActual = new Date().getFullYear();
+                clienteId = `CLI-${añoActual}-${String(clientes.length + 1).padStart(3, '0')}`;
                 const nuevoCliente = {
                     id: clienteId,
                     nombre: nombre,
                     email: email,
-                    telefono: telefono
+                    telefono: telefono,
+                    fecha_creacion: new Date().toISOString().split('T')[0]
                 };
 
                 clientes.push(nuevoCliente);
@@ -251,41 +323,135 @@
                 clienteNombre = cliente.nombre;
             }
 
-            // Obtener producto seleccionado
-            const productoSelect = document.getElementById('producto_select');
-            const productoOption = productoSelect.options[productoSelect.selectedIndex];
-            const productoNombre = productoOption.dataset.nombre;
+            // Gestión de producto: nuevo o existente
+            let productoId, productoNombre;
 
-            const id = `V-2024-${String(ventas.length + 1).padStart(3, '0')}`;
+            if (esNuevoProducto) {
+                const nombre = document.getElementById('nuevo_producto_nombre').value;
+                const precio = document.getElementById('nuevo_producto_precio').value;
 
-            const venta = {
-                id,
-                fecha: new Date().toISOString().split('T')[0],
-                cliente_id: clienteId,
-                cliente_nombre: clienteNombre,
-                producto_id: productoSelect.value,
-                producto_nombre: productoNombre,
-                monto_total: parseFloat(document.getElementById('monto_total').value),
-                tipo_pago: document.getElementById('tipo_pago').value,
-                num_cuotas: document.getElementById('tipo_pago').value === 'cuotas'
-                    ? parseInt(document.getElementById('num_cuotas').value)
-                    : 1,
-                monto_pagado: 0,
-                estado: 'PENDIENTE'
-            };
+                if (!nombre || !precio) {
+                    alert('❌ El nombre y precio del producto son requeridos');
+                    return;
+                }
 
-            ventas.push(venta);
-            localStorage.setItem('ventas', JSON.stringify(ventas));
+                // Crear nuevo producto con año dinámico
+                const añoActual = new Date().getFullYear();
+                productoId = `PROD-${añoActual}-${String(productos.length + 1).padStart(3, '0')}`;
+                const nuevoProducto = {
+                    id: productoId,
+                    nombre: nombre,
+                    precio_base: parseFloat(precio)
+                };
 
-            alert('✅ Venta creada exitosamente' + (esNuevoCliente ? ' (Cliente nuevo creado)' : ''));
+                productos.push(nuevoProducto);
+                localStorage.setItem('productos', JSON.stringify(productos));
+                productoNombre = nombre;
+
+                // Auto-completar monto
+                document.getElementById('monto_total').value = parseFloat(precio).toFixed(2);
+            } else {
+                const productoSelect = document.getElementById('producto_select');
+                productoId = productoSelect.value;
+                if (!productoId) {
+                    alert('❌ Debes seleccionar un producto');
+                    return;
+                }
+                const productoOption = productoSelect.options[productoSelect.selectedIndex];
+                productoNombre = productoOption.dataset.nombre;
+            }
+
+            const fecha = document.getElementById('fecha_venta').value;
+            const añoActual = new Date().getFullYear();
+
+            if (editMode) {
+                // Modo edición: actualizar venta existente
+                const ventaIndex = ventas.findIndex(v => v.id === ventaId);
+                if (ventaIndex !== -1) {
+                    ventas[ventaIndex] = {
+                        ...ventas[ventaIndex],
+                        fecha: fecha,
+                        cliente_id: clienteId,
+                        cliente_nombre: clienteNombre,
+                        producto_id: productoId,
+                        producto_nombre: productoNombre,
+                        monto_total: parseFloat(document.getElementById('monto_total').value),
+                        tipo_pago: document.getElementById('tipo_pago').value,
+                        num_cuotas: document.getElementById('tipo_pago').value === 'cuotas'
+                            ? parseInt(document.getElementById('num_cuotas').value)
+                            : 1
+                    };
+                    localStorage.setItem('ventas', JSON.stringify(ventas));
+                    alert('✅ Venta actualizada exitosamente');
+                }
+            } else {
+                // Modo creación: nueva venta
+                const id = `V-${añoActual}-${String(ventas.length + 1).padStart(3, '0')}`;
+
+                const venta = {
+                    id,
+                    fecha: fecha,
+                    cliente_id: clienteId,
+                    cliente_nombre: clienteNombre,
+                    producto_id: productoId,
+                    producto_nombre: productoNombre,
+                    monto_total: parseFloat(document.getElementById('monto_total').value),
+                    tipo_pago: document.getElementById('tipo_pago').value,
+                    num_cuotas: document.getElementById('tipo_pago').value === 'cuotas'
+                        ? parseInt(document.getElementById('num_cuotas').value)
+                        : 1,
+                    monto_pagado: 0,
+                    estado: 'PENDIENTE'
+                };
+
+                ventas.push(venta);
+                localStorage.setItem('ventas', JSON.stringify(ventas));
+
+                const mensajes = [];
+                if (esNuevoCliente) mensajes.push('Cliente nuevo creado');
+                if (esNuevoProducto) mensajes.push('Producto nuevo creado');
+                const mensaje = mensajes.length > 0 ? ` (${mensajes.join(', ')})` : '';
+                alert('✅ Venta creada exitosamente' + mensaje);
+            }
 
             // Reset form
-            toggleForm();
+            cancelarForm();
             e.target.reset();
-            document.getElementById('nuevoClienteForm').classList.add('hidden');
-            esNuevoCliente = false;
 
             loadVentas();
+        }
+
+        function editarVenta(id) {
+            const ventas = JSON.parse(localStorage.getItem('ventas') || '[]');
+            const venta = ventas.find(v => v.id === id);
+
+            if (!venta) return;
+
+            // Mostrar formulario
+            document.getElementById('formVenta').classList.remove('hidden');
+            document.getElementById('formTitle').textContent = 'Editar Venta';
+            document.getElementById('btnGuardar').textContent = 'Actualizar Venta';
+            document.getElementById('edit_mode').value = 'true';
+            document.getElementById('venta_id').value = id;
+
+            // Cargar selectores
+            cargarClientesEnSelector();
+            cargarProductosEnSelector();
+
+            // Llenar campos
+            document.getElementById('fecha_venta').value = venta.fecha;
+            document.getElementById('cliente_select').value = venta.cliente_id;
+            document.getElementById('producto_select').value = venta.producto_id;
+            document.getElementById('monto_total').value = venta.monto_total;
+            document.getElementById('tipo_pago').value = venta.tipo_pago;
+
+            if (venta.tipo_pago === 'cuotas') {
+                document.getElementById('divCuotas').classList.remove('hidden');
+                document.getElementById('num_cuotas').value = venta.num_cuotas || 3;
+            }
+
+            // Scroll al formulario
+            document.getElementById('formVenta').scrollIntoView({ behavior: 'smooth' });
         }
 
         function loadVentas() {
@@ -303,6 +469,7 @@
             const html = ventas.reverse().map(v => `
                 <tr class="border-b hover:bg-gray-50">
                     <td class="px-4 py-3 font-mono text-sm">${v.id}</td>
+                    <td class="px-4 py-3">${v.fecha}</td>
                     <td class="px-4 py-3">${v.cliente_nombre}</td>
                     <td class="px-4 py-3">${v.producto_nombre}</td>
                     <td class="px-4 py-3 text-right font-semibold">S/ ${v.monto_total.toFixed(2)}</td>
@@ -315,11 +482,16 @@
                             ${v.estado}
                         </span>
                     </td>
+                    <td class="px-4 py-3 text-center">
+                        <button onclick="editarVenta('${v.id}')" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            Editar
+                        </button>
+                    </td>
                 </tr>
             `).join('');
 
             document.getElementById('listaVentas').innerHTML = html ||
-                '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">No hay ventas registradas</td></tr>';
+                '<tr><td colspan="9" class="px-4 py-8 text-center text-gray-500">No hay ventas registradas</td></tr>';
         }
 
         loadVentas();
