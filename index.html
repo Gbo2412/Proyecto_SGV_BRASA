@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SGV BRASA - Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -58,6 +59,27 @@
             </div>
         </div>
 
+        <!-- Gráfico de Ventas -->
+        <div class="bg-white rounded-lg shadow p-6 mb-8">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold">Ventas por Período</h3>
+                <div class="flex gap-2">
+                    <button onclick="cambiarVista('dia')" id="btnDia" class="px-4 py-2 rounded bg-brand text-white text-sm">
+                        Día
+                    </button>
+                    <button onclick="cambiarVista('mes')" id="btnMes" class="px-4 py-2 rounded bg-gray-200 text-gray-700 text-sm hover:bg-gray-300">
+                        Mes
+                    </button>
+                    <button onclick="cambiarVista('año')" id="btnAño" class="px-4 py-2 rounded bg-gray-200 text-gray-700 text-sm hover:bg-gray-300">
+                        Año
+                    </button>
+                </div>
+            </div>
+            <div class="relative h-80">
+                <canvas id="ventasChart"></canvas>
+            </div>
+        </div>
+
         <!-- Últimas Ventas -->
         <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-xl font-bold mb-4">Últimas Ventas</h3>
@@ -68,6 +90,9 @@
     </div>
 
     <script>
+        let ventasChart = null;
+        let vistaActual = 'dia';
+
         // Cargar datos del Dashboard
         function loadDashboard() {
             const ventas = JSON.parse(localStorage.getItem('ventas') || '[]');
@@ -112,6 +137,164 @@
             `).join('');
 
             document.getElementById('ultimasVentas').innerHTML = html || '<p class="text-gray-500">No hay ventas registradas</p>';
+
+            // Cargar gráfico
+            cargarGrafico();
+        }
+
+        function cambiarVista(vista) {
+            vistaActual = vista;
+
+            // Actualizar botones
+            document.getElementById('btnDia').className = vista === 'dia'
+                ? 'px-4 py-2 rounded bg-brand text-white text-sm'
+                : 'px-4 py-2 rounded bg-gray-200 text-gray-700 text-sm hover:bg-gray-300';
+            document.getElementById('btnMes').className = vista === 'mes'
+                ? 'px-4 py-2 rounded bg-brand text-white text-sm'
+                : 'px-4 py-2 rounded bg-gray-200 text-gray-700 text-sm hover:bg-gray-300';
+            document.getElementById('btnAño').className = vista === 'año'
+                ? 'px-4 py-2 rounded bg-brand text-white text-sm'
+                : 'px-4 py-2 rounded bg-gray-200 text-gray-700 text-sm hover:bg-gray-300';
+
+            cargarGrafico();
+        }
+
+        function cargarGrafico() {
+            const ventas = JSON.parse(localStorage.getItem('ventas') || '[]');
+
+            let labels = [];
+            let data = [];
+
+            if (vistaActual === 'dia') {
+                // Agrupar por día (últimos 30 días)
+                const ventasPorDia = {};
+                const hoy = new Date();
+
+                // Inicializar últimos 30 días
+                for (let i = 29; i >= 0; i--) {
+                    const fecha = new Date(hoy);
+                    fecha.setDate(hoy.getDate() - i);
+                    const key = fecha.toISOString().split('T')[0];
+                    ventasPorDia[key] = 0;
+                }
+
+                // Contar ventas por día
+                ventas.forEach(v => {
+                    const key = v.fecha;
+                    if (ventasPorDia.hasOwnProperty(key)) {
+                        ventasPorDia[key] += parseFloat(v.monto_total);
+                    }
+                });
+
+                labels = Object.keys(ventasPorDia).map(fecha => {
+                    const d = new Date(fecha);
+                    return `${d.getDate()}/${d.getMonth() + 1}`;
+                });
+                data = Object.values(ventasPorDia);
+
+            } else if (vistaActual === 'mes') {
+                // Agrupar por mes (últimos 12 meses)
+                const ventasPorMes = {};
+                const hoy = new Date();
+
+                // Inicializar últimos 12 meses
+                for (let i = 11; i >= 0; i--) {
+                    const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+                    const key = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+                    ventasPorMes[key] = 0;
+                }
+
+                // Contar ventas por mes
+                ventas.forEach(v => {
+                    const fecha = new Date(v.fecha);
+                    const key = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+                    if (ventasPorMes.hasOwnProperty(key)) {
+                        ventasPorMes[key] += parseFloat(v.monto_total);
+                    }
+                });
+
+                labels = Object.keys(ventasPorMes).map(key => {
+                    const [año, mes] = key.split('-');
+                    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+                    return `${meses[parseInt(mes) - 1]} ${año}`;
+                });
+                data = Object.values(ventasPorMes);
+
+            } else if (vistaActual === 'año') {
+                // Agrupar por año (últimos 5 años)
+                const ventasPorAño = {};
+                const añoActual = new Date().getFullYear();
+
+                // Inicializar últimos 5 años
+                for (let i = 4; i >= 0; i--) {
+                    const año = añoActual - i;
+                    ventasPorAño[año] = 0;
+                }
+
+                // Contar ventas por año
+                ventas.forEach(v => {
+                    const año = new Date(v.fecha).getFullYear();
+                    if (ventasPorAño.hasOwnProperty(año)) {
+                        ventasPorAño[año] += parseFloat(v.monto_total);
+                    }
+                });
+
+                labels = Object.keys(ventasPorAño);
+                data = Object.values(ventasPorAño);
+            }
+
+            // Destruir gráfico anterior si existe
+            if (ventasChart) {
+                ventasChart.destroy();
+            }
+
+            // Crear nuevo gráfico
+            const ctx = document.getElementById('ventasChart').getContext('2d');
+            ventasChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Monto de Ventas (S/)',
+                        data: data,
+                        backgroundColor: 'rgba(14, 165, 233, 0.8)',
+                        borderColor: 'rgba(14, 165, 233, 1)',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'S/ ' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'S/ ' + value;
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         // Cargar dashboard al inicio
