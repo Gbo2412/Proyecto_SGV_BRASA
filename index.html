@@ -7,15 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: '#0ea5e9',
-                    }
-                }
-            }
-        }
+        tailwind.config = { theme: { extend: { colors: { brand: '#0ea5e9' } } } }
     </script>
 </head>
 <body class="bg-gray-50">
@@ -42,19 +34,19 @@
         <!-- KPIs -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div class="bg-white p-6 rounded-lg shadow">
-                <div class="text-sm text-gray-500">Ventas Totales</div>
-                <div class="text-3xl font-bold" id="totalVentas">0</div>
+                <div class="text-sm text-gray-600">Ventas Totales</div>
+                <div class="text-3xl font-bold text-gray-900" id="totalVentas">0</div>
             </div>
             <div class="bg-white p-6 rounded-lg shadow">
-                <div class="text-sm text-gray-500">Monto Total</div>
-                <div class="text-3xl font-bold" id="montoTotal">S/ 0</div>
+                <div class="text-sm text-gray-600">Monto Total</div>
+                <div class="text-3xl font-bold text-gray-900" id="montoTotal">S/ 0</div>
             </div>
             <div class="bg-white p-6 rounded-lg shadow">
-                <div class="text-sm text-gray-500">Saldo Pendiente</div>
+                <div class="text-sm text-gray-600">Saldo Pendiente</div>
                 <div class="text-3xl font-bold text-yellow-600" id="saldoPendiente">S/ 0</div>
             </div>
             <div class="bg-white p-6 rounded-lg shadow">
-                <div class="text-sm text-gray-500">Ventas Pagadas</div>
+                <div class="text-sm text-gray-600">Ventas Pagadas</div>
                 <div class="text-3xl font-bold text-green-600" id="ventasPagadas">0</div>
             </div>
         </div>
@@ -64,13 +56,13 @@
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-xl font-bold">Ventas por Período</h3>
                 <div class="flex gap-2">
-                    <button onclick="cambiarVista('dia')" id="btnDia" class="px-4 py-2 rounded bg-brand text-white text-sm">
+                    <button onclick="cambiarVista('dia')" id="btnDia" class="px-4 py-2 rounded bg-brand text-white text-sm hover:bg-blue-600">
                         Día
                     </button>
-                    <button onclick="cambiarVista('mes')" id="btnMes" class="px-4 py-2 rounded bg-gray-200 text-gray-700 text-sm hover:bg-gray-300">
+                    <button onclick="cambiarVista('mes')" id="btnMes" class="px-4 py-2 rounded bg-white border text-gray-700 text-sm hover:bg-gray-50">
                         Mes
                     </button>
-                    <button onclick="cambiarVista('año')" id="btnAño" class="px-4 py-2 rounded bg-gray-200 text-gray-700 text-sm hover:bg-gray-300">
+                    <button onclick="cambiarVista('año')" id="btnAño" class="px-4 py-2 rounded bg-white border text-gray-700 text-sm hover:bg-gray-50">
                         Año
                     </button>
                 </div>
@@ -125,11 +117,11 @@
                 <div class="flex justify-between items-center p-3 border rounded">
                     <div>
                         <div class="font-semibold">${v.id}</div>
-                        <div class="text-sm text-gray-500">${v.cliente_nombre} - ${v.producto_nombre}</div>
+                        <div class="text-sm text-gray-600">${v.cliente_nombre} - ${v.producto_nombre}</div>
                     </div>
                     <div class="text-right">
-                        <div class="font-bold">S/ ${parseFloat(v.monto_total).toFixed(2)}</div>
-                        <div class="text-sm ${v.estado === 'PAGADO' ? 'text-green-600' : 'text-yellow-600'}">
+                        <div class="font-bold text-gray-900">S/ ${parseFloat(v.monto_total).toFixed(2)}</div>
+                        <div class="text-sm font-semibold ${v.estado === 'PAGADO' ? 'text-green-600' : 'text-yellow-600'}">
                             ${v.estado}
                         </div>
                     </div>
@@ -147,14 +139,14 @@
 
             // Actualizar botones
             document.getElementById('btnDia').className = vista === 'dia'
-                ? 'px-4 py-2 rounded bg-brand text-white text-sm'
-                : 'px-4 py-2 rounded bg-gray-200 text-gray-700 text-sm hover:bg-gray-300';
+                ? 'px-4 py-2 rounded bg-brand text-white text-sm hover:bg-blue-600'
+                : 'px-4 py-2 rounded bg-white border text-gray-700 text-sm hover:bg-gray-50';
             document.getElementById('btnMes').className = vista === 'mes'
-                ? 'px-4 py-2 rounded bg-brand text-white text-sm'
-                : 'px-4 py-2 rounded bg-gray-200 text-gray-700 text-sm hover:bg-gray-300';
+                ? 'px-4 py-2 rounded bg-brand text-white text-sm hover:bg-blue-600'
+                : 'px-4 py-2 rounded bg-white border text-gray-700 text-sm hover:bg-gray-50';
             document.getElementById('btnAño').className = vista === 'año'
-                ? 'px-4 py-2 rounded bg-brand text-white text-sm'
-                : 'px-4 py-2 rounded bg-gray-200 text-gray-700 text-sm hover:bg-gray-300';
+                ? 'px-4 py-2 rounded bg-brand text-white text-sm hover:bg-blue-600'
+                : 'px-4 py-2 rounded bg-white border text-gray-700 text-sm hover:bg-gray-50';
 
             cargarGrafico();
         }
@@ -259,7 +251,7 @@
                         data: data,
                         backgroundColor: 'rgba(14, 165, 233, 0.8)',
                         borderColor: 'rgba(14, 165, 233, 1)',
-                        borderWidth: 1,
+                        borderWidth: 2,
                         borderRadius: 6
                     }]
                 },

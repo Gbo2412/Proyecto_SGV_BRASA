@@ -36,10 +36,12 @@
 
         <!-- Formulario Registrar Pago -->
         <div id="formPago" class="hidden bg-white p-6 rounded-lg shadow mb-8">
-            <h3 class="text-xl font-bold mb-4">Registrar Nuevo Pago</h3>
-            <form onsubmit="crearPago(event)" class="space-y-4">
+            <h3 class="text-xl font-bold mb-4" id="formTitle">Registrar Nuevo Pago</h3>
+            <form onsubmit="guardarPago(event)" class="space-y-4">
+                <input type="hidden" id="pago_id">
+                <input type="hidden" id="edit_mode" value="false">
                 <div>
-                    <label class="block text-sm font-medium mb-1">Venta</label>
+                    <label class="block text-sm font-medium mb-1">Venta *</label>
                     <select id="venta_id" onchange="updateVentaInfo()" required class="w-full border rounded px-3 py-2">
                         <option value="">Seleccionar venta...</option>
                     </select>
@@ -52,7 +54,7 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-1">Monto del Pago</label>
+                    <label class="block text-sm font-medium mb-1">Monto del Pago *</label>
                     <input type="number" id="monto" step="0.01" required class="w-full border rounded px-3 py-2">
                 </div>
                 <div>
@@ -65,10 +67,10 @@
                     </select>
                 </div>
                 <div class="flex gap-4">
-                    <button type="submit" class="bg-brand text-white px-6 py-2 rounded hover:bg-blue-600">
+                    <button type="submit" id="btnGuardar" class="bg-brand text-white px-6 py-2 rounded hover:bg-blue-600">
                         Registrar Pago
                     </button>
-                    <button type="button" onclick="toggleForm()" class="border px-6 py-2 rounded hover:bg-gray-100">
+                    <button type="button" onclick="cancelarForm()" class="border px-6 py-2 rounded hover:bg-gray-100">
                         Cancelar
                     </button>
                 </div>
@@ -86,10 +88,11 @@
                         <th class="px-4 py-3 text-right">Monto</th>
                         <th class="px-4 py-3 text-left">Método</th>
                         <th class="px-4 py-3 text-left">Fecha</th>
+                        <th class="px-4 py-3 text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="listaPagos">
-                    <tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No hay pagos registrados</td></tr>
+                    <tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">No hay pagos registrados</td></tr>
                 </tbody>
             </table>
         </div>
@@ -101,7 +104,16 @@
             form.classList.toggle('hidden');
             if (!form.classList.contains('hidden')) {
                 loadVentasPendientes();
+                document.getElementById('formTitle').textContent = 'Registrar Nuevo Pago';
+                document.getElementById('btnGuardar').textContent = 'Registrar Pago';
+                document.getElementById('edit_mode').value = 'false';
             }
+        }
+
+        function cancelarForm() {
+            document.getElementById('formPago').classList.add('hidden');
+            document.querySelector('form').reset();
+            document.getElementById('ventaInfo').classList.add('hidden');
         }
 
         function loadVentasPendientes() {
@@ -140,18 +152,26 @@
             }
         }
 
-        function crearPago(e) {
+        function guardarPago(e) {
             e.preventDefault();
 
             const pagos = JSON.parse(localStorage.getItem('pagos') || '[]');
             const ventas = JSON.parse(localStorage.getItem('ventas') || '[]');
+            const editMode = document.getElementById('edit_mode').value === 'true';
+            const pagoId = document.getElementById('pago_id').value;
 
             const ventaId = document.getElementById('venta_id').value;
             const venta = ventas.find(v => v.id === ventaId);
             const monto = parseFloat(document.getElementById('monto').value);
 
             // Validar que no exceda saldo
-            const pagosPrevios = pagos.filter(p => p.venta_id === ventaId);
+            let pagosPrevios = pagos.filter(p => p.venta_id === ventaId);
+
+            // Si estamos editando, excluir el pago actual del cálculo
+            if (editMode) {
+                pagosPrevios = pagosPrevios.filter(p => p.id !== pagoId);
+            }
+
             const montoPagado = pagosPrevios.reduce((sum, p) => sum + parseFloat(p.monto), 0);
             const saldoDisponible = venta.monto_total - montoPagado;
 
@@ -160,25 +180,76 @@
                 return;
             }
 
-            const añoActual = new Date().getFullYear();
-            const id = `P-${añoActual}-${String(pagos.length + 1).padStart(3, '0')}`;
+            if (editMode) {
+                // Modo edición
+                const pagoIndex = pagos.findIndex(p => p.id === pagoId);
+                if (pagoIndex !== -1) {
+                    pagos[pagoIndex] = {
+                        ...pagos[pagoIndex],
+                        venta_id: ventaId,
+                        cliente_nombre: venta.cliente_nombre,
+                        monto: monto,
+                        metodo_pago: document.getElementById('metodo_pago').value
+                    };
+                    localStorage.setItem('pagos', JSON.stringify(pagos));
+                    alert('✅ Pago actualizado exitosamente');
+                }
+            } else {
+                // Modo creación
+                const añoActual = new Date().getFullYear();
+                const id = `P-${añoActual}-${String(pagos.length + 1).padStart(3, '0')}`;
 
-            const pago = {
-                id,
-                venta_id: ventaId,
-                cliente_nombre: venta.cliente_nombre,
-                fecha: new Date().toISOString().split('T')[0],
-                monto,
-                metodo_pago: document.getElementById('metodo_pago').value
-            };
+                const pago = {
+                    id,
+                    venta_id: ventaId,
+                    cliente_nombre: venta.cliente_nombre,
+                    fecha: new Date().toISOString().split('T')[0],
+                    monto,
+                    metodo_pago: document.getElementById('metodo_pago').value
+                };
 
-            pagos.push(pago);
-            localStorage.setItem('pagos', JSON.stringify(pagos));
+                pagos.push(pago);
+                localStorage.setItem('pagos', JSON.stringify(pagos));
 
-            alert('✅ Pago registrado exitosamente');
-            toggleForm();
+                alert('✅ Pago registrado exitosamente');
+            }
+
+            cancelarForm();
             e.target.reset();
             loadPagos();
+        }
+
+        function editarPago(id) {
+            const pagos = JSON.parse(localStorage.getItem('pagos') || '[]');
+            const ventas = JSON.parse(localStorage.getItem('ventas') || '[]');
+            const pago = pagos.find(p => p.id === id);
+
+            if (!pago) return;
+
+            // Mostrar formulario
+            document.getElementById('formPago').classList.remove('hidden');
+            document.getElementById('formTitle').textContent = 'Editar Pago';
+            document.getElementById('btnGuardar').textContent = 'Actualizar Pago';
+            document.getElementById('edit_mode').value = 'true';
+            document.getElementById('pago_id').value = id;
+
+            // Cargar todas las ventas (no solo pendientes)
+            const select = document.getElementById('venta_id');
+            const options = ventas.map(v =>
+                `<option value="${v.id}">${v.id} - ${v.cliente_nombre}</option>`
+            ).join('');
+            select.innerHTML = '<option value="">Seleccionar venta...</option>' + options;
+
+            // Llenar campos
+            document.getElementById('venta_id').value = pago.venta_id;
+            document.getElementById('monto').value = pago.monto;
+            document.getElementById('metodo_pago').value = pago.metodo_pago;
+
+            // Actualizar info de venta
+            updateVentaInfo();
+
+            // Scroll al formulario
+            document.getElementById('formPago').scrollIntoView({ behavior: 'smooth' });
         }
 
         function loadPagos() {
@@ -192,11 +263,16 @@
                     <td class="px-4 py-3 text-right font-semibold text-green-600">S/ ${parseFloat(p.monto).toFixed(2)}</td>
                     <td class="px-4 py-3 capitalize">${p.metodo_pago}</td>
                     <td class="px-4 py-3">${p.fecha}</td>
+                    <td class="px-4 py-3 text-center">
+                        <button onclick="editarPago('${p.id}')" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            Editar
+                        </button>
+                    </td>
                 </tr>
             `).join('');
 
             document.getElementById('listaPagos').innerHTML = html ||
-                '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No hay pagos registrados</td></tr>';
+                '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">No hay pagos registrados</td></tr>';
         }
 
         loadPagos();

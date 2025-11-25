@@ -473,8 +473,8 @@
                     <td class="px-4 py-3">${v.cliente_nombre}</td>
                     <td class="px-4 py-3">${v.producto_nombre}</td>
                     <td class="px-4 py-3 text-right font-semibold">S/ ${v.monto_total.toFixed(2)}</td>
-                    <td class="px-4 py-3 text-right text-green-600">S/ ${v.monto_pagado.toFixed(2)}</td>
-                    <td class="px-4 py-3 text-right text-yellow-600">S/ ${v.saldo_pendiente.toFixed(2)}</td>
+                    <td class="px-4 py-3 text-right text-green-600 font-semibold">S/ ${v.monto_pagado.toFixed(2)}</td>
+                    <td class="px-4 py-3 text-right text-yellow-600 font-semibold">S/ ${v.saldo_pendiente.toFixed(2)}</td>
                     <td class="px-4 py-3 text-center">
                         <span class="px-2 py-1 rounded text-xs font-semibold ${
                             v.estado === 'PAGADO' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
