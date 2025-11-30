@@ -76,7 +76,7 @@ CREATE INDEX idx_productos_sku ON productos(sku);
 interface CreateProductoInput {
   nombre: string;                // Requerido
   descripcion?: string;          // Opcional
-  categoria?: string;            // Opcional
+  categoria?: string;            // Opcional debe ser un un valor desplegable y configurable o por base de datos.
   precio_base: number;           // Requerido
   unidad?: string;               // Opcional, default: 'unidad'
   sku?: string;                  // Opcional
