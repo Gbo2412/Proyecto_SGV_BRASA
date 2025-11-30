@@ -27,28 +27,38 @@ El módulo DASHBOARD proporciona una vista consolidada de métricas clave del ne
 
 1. **Ventas Totales**
    - Número total de ventas en el período
+   - **Color del valor: Negro (text-gray-900)** para máxima legibilidad
    - Comparación con período anterior
    - Indicador de tendencia (↑ o ↓)
 
 2. **Monto Total Vendido**
    - Suma de todos los montos de ventas
    - Formato moneda: S/ XX,XXX.XX
+   - **Color del valor: Negro (text-gray-900)** para máxima legibilidad de datos financieros
    - Comparación con período anterior
 
 3. **Saldo Pendiente**
    - Suma de todos los saldos pendientes
-   - Destacado en amarillo si > 0
+   - **Color del valor: Amarillo (text-yellow-600)** para destacar pendientes
    - Link a "Ver Ventas Pendientes"
 
 4. **Ventas Pagadas**
    - Número de ventas con estado PAGADO
    - Porcentaje del total
+   - **Color del valor: Verde (text-green-600)** para indicar completado
    - Badge verde
 
 5. **Pagos del Mes**
    - Número de pagos recibidos este mes
    - Monto total recibido
+   - **Color del valor: Negro (text-gray-900)** para datos generales
    - Gráfico de línea pequeño (sparkline)
+
+**Reglas de Color para KPIs (según feedback del MVP):**
+- Valores numéricos generales (conteos, montos): **Negro** (text-gray-900)
+- Montos pagados/completados: **Verde** (text-green-600)
+- Saldos pendientes: **Amarillo** (text-yellow-600)
+- Enlaces y botones: **Azul** (brand-500 / #0ea5e9)
 
 ### 2.2 Alertas y Notificaciones
 
@@ -105,14 +115,39 @@ El módulo DASHBOARD proporciona una vista consolidada de métricas clave del ne
 **1. Últimas Ventas**
 - Tabla con últimas 10 ventas registradas
 - Columnas: ID, Fecha, Cliente, Producto, Monto, Estado
+- **Formato de Monto: Negro (text-gray-900) y font-bold** para máxima legibilidad
+- Estados con badges de colores: Verde (PAGADO) / Amarillo (PENDIENTE)
 - Acciones: Ver detalle
 - Link: "Ver todas las ventas"
+
+**Ejemplo de implementación:**
+```tsx
+<TableRow>
+  <TableCell className="font-mono text-sm">{venta.venta_id}</TableCell>
+  <TableCell>{formatDate(venta.fecha)}</TableCell>
+  <TableCell>{venta.cliente.nombre}</TableCell>
+  <TableCell>{venta.producto_nombre}</TableCell>
+  <TableCell className="font-bold text-gray-900">S/ {formatNumber(venta.monto_total)}</TableCell>
+  <TableCell>
+    <Badge variant={venta.estado === 'PAGADO' ? 'success' : 'warning'}>
+      {venta.estado}
+    </Badge>
+  </TableCell>
+</TableRow>
+```
 
 **2. Últimos Pagos**
 - Tabla con últimos 10 pagos recibidos
 - Columnas: ID, Fecha, Cliente, Venta, Monto, Método
+- **Formato de Monto: Verde (text-green-600) y font-semibold** para indicar dinero recibido
 - Acciones: Ver detalle
 - Link: "Ver todos los pagos"
+
+**Reglas de Formato según Feedback del MVP:**
+- Montos en Últimas Ventas: Negro (neutrales)
+- Montos en Últimos Pagos: Verde (dinero recibido)
+- IDs de transacción: Fuente monoespaciada
+- Estados: Badges con colores semánticos
 
 ---
 

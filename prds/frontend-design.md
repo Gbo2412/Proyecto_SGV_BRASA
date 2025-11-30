@@ -144,12 +144,14 @@ export const colors = {
   success: {
     50: '#f0fdf4',
     500: '#22c55e',  // Green
+    600: '#16a34a',  // Green (darker)
     700: '#15803d',
   },
 
   warning: {
     50: '#fffbeb',
     500: '#eab308',  // Yellow
+    600: '#ca8a04',  // Yellow (darker)
     700: '#a16207',
   },
 
@@ -170,7 +172,7 @@ export const colors = {
     600: '#525252',
     700: '#404040',
     800: '#262626',
-    900: '#171717',
+    900: '#171717',  // Data display (black)
     950: '#0a0a0a',
   },
 };
@@ -180,12 +182,13 @@ export const colors = {
 
 | Estado | Color | Uso |
 |--------|-------|-----|
-| PAGADO | `success-500` (verde) | Ventas completadas |
-| PENDIENTE | `warning-500` (amarillo) | Ventas con saldo |
+| PAGADO | `success-600` (verde) | Ventas completadas, montos pagados |
+| PENDIENTE | `warning-600` (amarillo) | Ventas con saldo pendiente |
 | ACTIVO | `success-500` (verde) | Clientes/productos activos |
 | INACTIVO | `neutral-400` (gris) | Elementos desactivados |
-| PRIMARY | `brand-500` (azul) | Acciones principales |
+| PRIMARY | `brand-500` (azul) | Acciones principales, links |
 | DESTRUCTIVE | `error-500` (rojo) | Acciones de eliminación |
+| DATA_VALUES | `neutral-900` (negro) | Valores numéricos, montos en KPIs |
 
 **Contraste de Color (WCAG 2.1 AA)**
 
@@ -406,7 +409,7 @@ import { Table, TableHeader, TableBody, TableRow, TableCell } from '@/components
       <TableRow key={venta.id}>
         <TableCell>{venta.venta_id}</TableCell>
         <TableCell>{venta.cliente.nombre}</TableCell>
-        <TableCell>S/ {venta.monto_total}</TableCell>
+        <TableCell className="font-bold text-gray-900">S/ {venta.monto_total}</TableCell>
         <TableCell>
           <Badge variant={venta.estado === 'PAGADO' ? 'success' : 'warning'}>
             {venta.estado}
@@ -416,6 +419,9 @@ import { Table, TableHeader, TableBody, TableRow, TableCell } from '@/components
     ))}
   </TableBody>
 </Table>
+
+// Nota: Los montos siempre deben mostrarse en negro (text-gray-900) para máxima legibilidad
+// Solo los estados y badges usan colores semánticos (verde/amarillo)
 ```
 
 ---
@@ -643,16 +649,23 @@ interface KPICardProps {
   change?: string;
   trend?: 'up' | 'down';
   icon: LucideIcon;
+  valueColor?: 'default' | 'success' | 'warning'; // Color del valor
 }
 
-function KPICard({ title, value, change, trend, icon: Icon }: KPICardProps) {
+function KPICard({ title, value, change, trend, icon: Icon, valueColor = 'default' }: KPICardProps) {
+  const valueColorClass = {
+    default: 'text-gray-900',      // Negro para datos generales (Ventas Totales, Monto Total)
+    success: 'text-green-600',     // Verde para pagos/completados
+    warning: 'text-yellow-600',    // Amarillo para pendientes
+  }[valueColor];
+
   return (
     <Card>
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-sm font-medium text-neutral-500">{title}</p>
-            <p className="text-3xl font-bold">{value}</p>
+            <p className={cn("text-3xl font-bold", valueColorClass)}>{value}</p>
             {change && (
               <p className={cn(
                 "text-sm font-medium flex items-center gap-1",
@@ -671,6 +684,40 @@ function KPICard({ title, value, change, trend, icon: Icon }: KPICardProps) {
     </Card>
   );
 }
+
+// Uso en Dashboard:
+<KPICard
+  title="Ventas Totales"
+  value="45"
+  valueColor="default"  // Negro
+  change="+12%"
+  trend="up"
+  icon={ShoppingCart}
+/>
+<KPICard
+  title="Monto Total"
+  value="S/ 12,500"
+  valueColor="default"  // Negro
+  change="+8%"
+  trend="up"
+  icon={DollarSign}
+/>
+<KPICard
+  title="Saldo Pendiente"
+  value="S/ 3,200"
+  valueColor="warning"  // Amarillo
+  change="-15%"
+  trend="down"
+  icon={AlertCircle}
+/>
+<KPICard
+  title="Ventas Pagadas"
+  value="35 (78%)"
+  valueColor="success"  // Verde
+  change="+5%"
+  trend="up"
+  icon={CheckCircle}
+/>
 ```
 
 ### 4.3 Vista: Lista de Ventas
