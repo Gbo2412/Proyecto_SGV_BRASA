@@ -64,14 +64,28 @@ npx supabase db push --db-url "postgresql://postgres:[PASSWORD]@db.[PROJECT-ID].
 
 3. Haz clic en cada tabla para ver su estructura
 
-## Paso 6: Verificar Políticas RLS
+## Paso 6: DESACTIVAR RLS para Desarrollo (IMPORTANTE)
 
-1. Ve a **Authentication** > **Policies**
-2. Verifica que cada tabla tenga 4 políticas:
-   - SELECT (view own)
-   - INSERT (insert own)
-   - UPDATE (update own)
-   - DELETE (delete own)
+⚠️ **Como NO hemos implementado autenticación aún, las políticas RLS bloquearán todas las operaciones.**
+
+Ejecuta este script en **SQL Editor** para desactivar temporalmente RLS:
+
+```sql
+-- Desactivar RLS para desarrollo sin autenticación
+ALTER TABLE public.clientes DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.productos DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ventas DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pagos DISABLE ROW LEVEL SECURITY;
+```
+
+**NOTA**: Cuando implementes autenticación en el futuro, deberás volver a activar RLS con:
+
+```sql
+ALTER TABLE public.clientes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.productos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ventas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pagos ENABLE ROW LEVEL SECURITY;
+```
 
 ## Paso 7: Crear Usuario de Prueba
 

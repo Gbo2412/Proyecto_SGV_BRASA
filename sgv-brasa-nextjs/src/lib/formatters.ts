@@ -2,22 +2,15 @@
  * Formatea un número como moneda en soles peruanos
  */
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('es-PE', {
-    style: 'currency',
-    currency: 'PEN',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount)
+  const formatted = amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  return `S/ ${formatted}`
 }
 
 /**
  * Formatea un número con separadores de miles
  */
 export function formatNumber(value: number): string {
-  return new Intl.NumberFormat('es-PE', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value)
+  return value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 }
 
 /**
@@ -25,11 +18,10 @@ export function formatNumber(value: number): string {
  */
 export function formatDate(date: string | Date): string {
   const d = typeof date === 'string' ? new Date(date) : date
-  return new Intl.DateFormat('es-PE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(d)
+  const day = String(d.getDate()).padStart(2, '0')
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const year = d.getFullYear()
+  return `${day}/${month}/${year}`
 }
 
 /**
@@ -45,9 +37,9 @@ export function formatDateForInput(date: string | Date): string {
  */
 export function formatDateLong(date: string | Date): string {
   const d = typeof date === 'string' ? new Date(date) : date
-  return new Intl.DateFormat('es-PE', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(d)
+  const months = [
+    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+  ]
+  return `${d.getDate()} de ${months[d.getMonth()]}, ${d.getFullYear()}`
 }
