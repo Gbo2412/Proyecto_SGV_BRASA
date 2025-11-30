@@ -17,37 +17,24 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/lib/formatters'
-import type { DashboardKPIs, UltimaVenta } from '@/types'
+import { getCurrentUserId } from '@/lib/auth'
+import type { DashboardKPIs, UltimaVenta, Venta } from '@/types'
 
 async function getDashboardData(): Promise<{
   kpis: DashboardKPIs
   ultimasVentas: UltimaVenta[]
 }> {
   const supabase = await createClient()
-
-  // Obtener datos del usuario autenticado
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return {
-      kpis: {
-        totalVentas: 0,
-        montoTotal: 0,
-        ventasPagadas: 0,
-        saldoPendiente: 0,
-      },
-      ultimasVentas: [],
-    }
-  }
+  const userId = await getCurrentUserId()
 
   // Obtener todas las ventas del usuario
-  const { data: ventas, error } = await supabase
+  const { data, error } = await supabase
     .from('ventas')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .order('fecha', { ascending: false })
+
+  const ventas = data as Venta[] | null
 
   if (error) {
     console.error('Error fetching ventas:', error)
