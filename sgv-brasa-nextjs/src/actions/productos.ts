@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getCurrentUserId } from '@/lib/auth'
 import { productoSchema, type ProductoFormValues } from '@/lib/validations/producto'
 import type { Producto } from '@/types'
+import type { Database } from '@/types/database.types'
 
 /**
  * Obtener todos los productos del usuario actual
@@ -72,7 +73,7 @@ export async function createProducto(
     const supabase = await createClient()
     const userId = await getCurrentUserId()
 
-    const insertData = {
+    const insertData: Database['public']['Tables']['productos']['Insert'] = {
       user_id: userId,
       nombre: validatedData.nombre,
       descripcion: validatedData.descripcion || null,
@@ -82,7 +83,7 @@ export async function createProducto(
 
     const { data, error } = await supabase
       .from('productos')
-      .insert(insertData)
+      .insert([insertData])
       .select()
       .single()
 

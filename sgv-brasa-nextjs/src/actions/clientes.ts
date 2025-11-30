@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getCurrentUserId } from '@/lib/auth'
 import { clienteSchema, type ClienteFormValues } from '@/lib/validations/cliente'
 import type { Cliente } from '@/types'
+import type { Database } from '@/types/database.types'
 
 /**
  * Obtener todos los clientes del usuario actual
@@ -74,7 +75,7 @@ export async function createCliente(
     const userId = await getCurrentUserId()
 
     // Preparar datos para insertar
-    const insertData = {
+    const insertData: Database['public']['Tables']['clientes']['Insert'] = {
       user_id: userId,
       nombre: validatedData.nombre,
       email: validatedData.email || null,
@@ -84,7 +85,7 @@ export async function createCliente(
 
     const { data, error } = await supabase
       .from('clientes')
-      .insert(insertData)
+      .insert([insertData])
       .select()
       .single()
 
