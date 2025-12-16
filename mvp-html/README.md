@@ -4,7 +4,13 @@ MVP rápido funcional para validar la idea del Sistema de Gestión de Ventas BRA
 
 ## 🚀 Características
 
-✅ Dashboard con KPIs en tiempo real y gráfico interactivo (día/mes/año)
+✅ Dashboard con KPIs en tiempo real
+✅ **Filtros por fecha:** Filtra ventas por rango de fechas (desde/hasta) - el eje X se ajusta dinámicamente
+✅ **Gráficos interactivos avanzados:**
+   - Vista temporal: Por día/mes/año con **barras apiladas por categoría** (cada color representa una categoría)
+   - Vista por categoría: Ventas agrupadas por categoría de producto
+   - Tooltip muestra detalle por categoría y total
+   - Leyenda interactiva en la parte inferior
 ✅ Crear ventas (contado y cuotas) con fecha editable
 ✅ **Cliente existente o nuevo:** Selector desplegable con opción de crear cliente al momento de la venta
 ✅ **Producto existente o nuevo:** Selector desplegable con opción de crear producto al momento de la venta
@@ -139,7 +145,19 @@ git push -u origin main
    - Ver estado de venta actualizado
    - Usar el gráfico para ver ventas por día, mes o año
 
-6. **Editar clientes y productos:**
+6. **Usar filtros y gráficos avanzados:**
+   - En Dashboard, selecciona un rango de fechas (desde/hasta)
+   - Click en "Aplicar Filtros" para ver solo ventas en ese rango
+   - Los KPIs y gráficos se actualizarán automáticamente
+   - **El eje X del gráfico se ajusta automáticamente al rango de fechas seleccionado**
+   - Cambia entre "Por Período" y "Por Categoría" para diferentes vistas
+   - En "Por Período", verás **barras apiladas con colores por categoría** - cada color representa una categoría de producto
+   - Pasa el mouse sobre las barras para ver el detalle de cada categoría y el total
+   - En "Por Categoría", verás las ventas totales agrupadas por categoría
+   - Click en la leyenda para ocultar/mostrar categorías específicas
+   - Click en "Limpiar" para volver a ver todas las ventas
+
+7. **Editar clientes y productos:**
    - Ir a "Clientes" o "Productos"
    - Click "Editar" en cualquier registro
    - Modificar los datos

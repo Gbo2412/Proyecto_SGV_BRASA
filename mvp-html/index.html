@@ -31,6 +31,29 @@
     <div class="max-w-7xl mx-auto px-4 py-8">
         <h2 class="text-3xl font-bold mb-8">Dashboard</h2>
 
+        <!-- Filtros por Fecha -->
+        <div class="bg-white p-6 rounded-lg shadow mb-8">
+            <h3 class="text-lg font-bold mb-4">Filtros</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Fecha Desde</label>
+                    <input type="date" id="fechaDesde" class="w-full border rounded px-3 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Fecha Hasta</label>
+                    <input type="date" id="fechaHasta" class="w-full border rounded px-3 py-2">
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="aplicarFiltros()" class="bg-brand text-white px-6 py-2 rounded hover:bg-blue-600">
+                        Aplicar Filtros
+                    </button>
+                    <button onclick="limpiarFiltros()" class="border px-6 py-2 rounded hover:bg-gray-100">
+                        Limpiar
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- KPIs -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div class="bg-white p-6 rounded-lg shadow">
@@ -54,17 +77,29 @@
         <!-- Gráfico de Ventas -->
         <div class="bg-white rounded-lg shadow p-6 mb-8">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-bold">Ventas por Período</h3>
-                <div class="flex gap-2">
-                    <button onclick="cambiarVista('dia')" id="btnDia" class="px-4 py-2 rounded bg-brand text-white text-sm hover:bg-blue-600">
-                        Día
-                    </button>
-                    <button onclick="cambiarVista('mes')" id="btnMes" class="px-4 py-2 rounded bg-white border text-gray-700 text-sm hover:bg-gray-50">
-                        Mes
-                    </button>
-                    <button onclick="cambiarVista('año')" id="btnAño" class="px-4 py-2 rounded bg-white border text-gray-700 text-sm hover:bg-gray-50">
-                        Año
-                    </button>
+                <h3 class="text-xl font-bold" id="tituloGrafico">Ventas por Período</h3>
+                <div class="flex gap-4">
+                    <!-- Toggle entre vistas -->
+                    <div class="flex gap-2 border-r pr-4">
+                        <button onclick="cambiarTipoGrafico('temporal')" id="btnTemporal" class="px-4 py-2 rounded bg-brand text-white text-sm hover:bg-blue-600">
+                            Por Período
+                        </button>
+                        <button onclick="cambiarTipoGrafico('categoria')" id="btnCategoria" class="px-4 py-2 rounded bg-white border text-gray-700 text-sm hover:bg-gray-50">
+                            Por Categoría
+                        </button>
+                    </div>
+                    <!-- Botones de período (solo para vista temporal) -->
+                    <div id="botonesTemporales" class="flex gap-2">
+                        <button onclick="cambiarVista('dia')" id="btnDia" class="px-4 py-2 rounded bg-brand text-white text-sm hover:bg-blue-600">
+                            Día
+                        </button>
+                        <button onclick="cambiarVista('mes')" id="btnMes" class="px-4 py-2 rounded bg-white border text-gray-700 text-sm hover:bg-gray-50">
+                            Mes
+                        </button>
+                        <button onclick="cambiarVista('año')" id="btnAño" class="px-4 py-2 rounded bg-white border text-gray-700 text-sm hover:bg-gray-50">
+                            Año
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="relative h-80">
@@ -84,15 +119,16 @@
     <script>
         let ventasChart = null;
         let vistaActual = 'dia';
+        let tipoGrafico = 'temporal'; // 'temporal' o 'categoria'
+        let ventasFiltradas = [];
 
         // Cargar datos del Dashboard
         function loadDashboard() {
             const ventas = JSON.parse(localStorage.getItem('ventas') || '[]');
             const pagos = JSON.parse(localStorage.getItem('pagos') || '[]');
 
-            // Calcular KPIs
-            const totalVentas = ventas.length;
-            const montoTotal = ventas.reduce((sum, v) => sum + parseFloat(v.monto_total || 0), 0);
+            // Aplicar filtros de fecha
+            ventasFiltradas = filtrarPorFecha(ventas);
 
             // Calcular monto pagado por venta
             ventas.forEach(venta => {
@@ -102,8 +138,11 @@
                 venta.estado = venta.saldo_pendiente <= 0 ? 'PAGADO' : 'PENDIENTE';
             });
 
-            const saldoPendiente = ventas.reduce((sum, v) => sum + v.saldo_pendiente, 0);
-            const ventasPagadas = ventas.filter(v => v.estado === 'PAGADO').length;
+            // Calcular KPIs basados en ventas filtradas
+            const totalVentas = ventasFiltradas.length;
+            const montoTotal = ventasFiltradas.reduce((sum, v) => sum + parseFloat(v.monto_total || 0), 0);
+            const saldoPendiente = ventasFiltradas.reduce((sum, v) => sum + v.saldo_pendiente, 0);
+            const ventasPagadas = ventasFiltradas.filter(v => v.estado === 'PAGADO').length;
 
             // Actualizar UI
             document.getElementById('totalVentas').textContent = totalVentas;
@@ -111,8 +150,8 @@
             document.getElementById('saldoPendiente').textContent = `S/ ${saldoPendiente.toFixed(2)}`;
             document.getElementById('ventasPagadas').textContent = ventasPagadas;
 
-            // Mostrar últimas 5 ventas
-            const ultimasVentas = ventas.slice(-5).reverse();
+            // Mostrar últimas 5 ventas (de las filtradas)
+            const ultimasVentas = ventasFiltradas.slice(-5).reverse();
             const html = ultimasVentas.map(v => `
                 <div class="flex justify-between items-center p-3 border rounded">
                     <div>
@@ -134,6 +173,58 @@
             cargarGrafico();
         }
 
+        // Filtrar ventas por rango de fechas
+        function filtrarPorFecha(ventas) {
+            const fechaDesde = document.getElementById('fechaDesde').value;
+            const fechaHasta = document.getElementById('fechaHasta').value;
+
+            if (!fechaDesde && !fechaHasta) {
+                return ventas;
+            }
+
+            return ventas.filter(venta => {
+                const fechaVenta = venta.fecha;
+                if (fechaDesde && fechaVenta < fechaDesde) return false;
+                if (fechaHasta && fechaVenta > fechaHasta) return false;
+                return true;
+            });
+        }
+
+        // Aplicar filtros
+        function aplicarFiltros() {
+            loadDashboard();
+        }
+
+        // Limpiar filtros
+        function limpiarFiltros() {
+            document.getElementById('fechaDesde').value = '';
+            document.getElementById('fechaHasta').value = '';
+            loadDashboard();
+        }
+
+        // Cambiar tipo de gráfico
+        function cambiarTipoGrafico(tipo) {
+            tipoGrafico = tipo;
+
+            // Actualizar botones
+            document.getElementById('btnTemporal').className = tipo === 'temporal'
+                ? 'px-4 py-2 rounded bg-brand text-white text-sm hover:bg-blue-600'
+                : 'px-4 py-2 rounded bg-white border text-gray-700 text-sm hover:bg-gray-50';
+            document.getElementById('btnCategoria').className = tipo === 'categoria'
+                ? 'px-4 py-2 rounded bg-brand text-white text-sm hover:bg-blue-600'
+                : 'px-4 py-2 rounded bg-white border text-gray-700 text-sm hover:bg-gray-50';
+
+            // Mostrar/ocultar botones temporales
+            document.getElementById('botonesTemporales').style.display = tipo === 'temporal' ? 'flex' : 'none';
+
+            // Actualizar título
+            document.getElementById('tituloGrafico').textContent = tipo === 'temporal'
+                ? 'Ventas por Período'
+                : 'Ventas por Categoría de Producto';
+
+            cargarGrafico();
+        }
+
         function cambiarVista(vista) {
             vistaActual = vista;
 
@@ -152,87 +243,200 @@
         }
 
         function cargarGrafico() {
-            const ventas = JSON.parse(localStorage.getItem('ventas') || '[]');
-
             let labels = [];
-            let data = [];
+            let datasets = [];
+
+            if (tipoGrafico === 'categoria') {
+                // Gráfico por categorías de producto
+                cargarGraficoPorCategoria();
+                return;
+            }
+
+            // Gráfico temporal (día/mes/año) con segmentación por categoría
+            const productos = JSON.parse(localStorage.getItem('productos') || '[]');
 
             if (vistaActual === 'dia') {
-                // Agrupar por día (últimos 30 días)
-                const ventasPorDia = {};
-                const hoy = new Date();
+                // Determinar rango de fechas
+                const fechaDesde = document.getElementById('fechaDesde').value;
+                const fechaHasta = document.getElementById('fechaHasta').value;
 
-                // Inicializar últimos 30 días
-                for (let i = 29; i >= 0; i--) {
-                    const fecha = new Date(hoy);
-                    fecha.setDate(hoy.getDate() - i);
-                    const key = fecha.toISOString().split('T')[0];
-                    ventasPorDia[key] = 0;
+                let fechaInicio, fechaFin;
+
+                if (fechaDesde && fechaHasta) {
+                    // Usar rango de filtros
+                    fechaInicio = new Date(fechaDesde);
+                    fechaFin = new Date(fechaHasta);
+                } else if (fechaDesde) {
+                    // Solo desde
+                    fechaInicio = new Date(fechaDesde);
+                    fechaFin = new Date();
+                } else if (fechaHasta) {
+                    // Solo hasta
+                    fechaInicio = new Date(fechaHasta);
+                    fechaInicio.setDate(fechaInicio.getDate() - 29);
+                    fechaFin = new Date(fechaHasta);
+                } else {
+                    // Sin filtros: últimos 30 días
+                    fechaFin = new Date();
+                    fechaInicio = new Date();
+                    fechaInicio.setDate(fechaFin.getDate() - 29);
                 }
 
-                // Contar ventas por día
-                ventas.forEach(v => {
+                // Generar array de fechas
+                const fechas = [];
+                const ventasPorDia = {};
+                for (let d = new Date(fechaInicio); d <= fechaFin; d.setDate(d.getDate() + 1)) {
+                    const key = d.toISOString().split('T')[0];
+                    fechas.push(key);
+                    ventasPorDia[key] = {};
+                }
+
+                // Agrupar ventas por día y categoría
+                ventasFiltradas.forEach(v => {
                     const key = v.fecha;
                     if (ventasPorDia.hasOwnProperty(key)) {
-                        ventasPorDia[key] += parseFloat(v.monto_total);
+                        const producto = productos.find(p => p.nombre === v.producto_nombre);
+                        const categoria = producto?.categoria || 'Sin categoría';
+
+                        if (!ventasPorDia[key][categoria]) {
+                            ventasPorDia[key][categoria] = 0;
+                        }
+                        ventasPorDia[key][categoria] += parseFloat(v.monto_total);
                     }
                 });
 
-                labels = Object.keys(ventasPorDia).map(fecha => {
+                // Obtener todas las categorías únicas
+                const categorias = new Set();
+                Object.values(ventasPorDia).forEach(dia => {
+                    Object.keys(dia).forEach(cat => categorias.add(cat));
+                });
+
+                labels = fechas.map(fecha => {
                     const d = new Date(fecha);
                     return `${d.getDate()}/${d.getMonth() + 1}`;
                 });
-                data = Object.values(ventasPorDia);
+
+                // Crear datasets por categoría
+                datasets = crearDatasetsPorCategoria(Array.from(categorias), fechas, ventasPorDia);
 
             } else if (vistaActual === 'mes') {
-                // Agrupar por mes (últimos 12 meses)
-                const ventasPorMes = {};
-                const hoy = new Date();
+                // Determinar rango de meses
+                const fechaDesde = document.getElementById('fechaDesde').value;
+                const fechaHasta = document.getElementById('fechaHasta').value;
 
-                // Inicializar últimos 12 meses
-                for (let i = 11; i >= 0; i--) {
-                    const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
-                    const key = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
-                    ventasPorMes[key] = 0;
+                let mesInicio, mesFin;
+
+                if (fechaDesde && fechaHasta) {
+                    const inicio = new Date(fechaDesde);
+                    const fin = new Date(fechaHasta);
+                    mesInicio = new Date(inicio.getFullYear(), inicio.getMonth(), 1);
+                    mesFin = new Date(fin.getFullYear(), fin.getMonth(), 1);
+                } else if (fechaDesde) {
+                    const inicio = new Date(fechaDesde);
+                    mesInicio = new Date(inicio.getFullYear(), inicio.getMonth(), 1);
+                    mesFin = new Date();
+                } else if (fechaHasta) {
+                    const fin = new Date(fechaHasta);
+                    mesFin = new Date(fin.getFullYear(), fin.getMonth(), 1);
+                    mesInicio = new Date(mesFin);
+                    mesInicio.setMonth(mesInicio.getMonth() - 11);
+                } else {
+                    // Sin filtros: últimos 12 meses
+                    mesFin = new Date();
+                    mesInicio = new Date();
+                    mesInicio.setMonth(mesInicio.getMonth() - 11);
                 }
 
-                // Contar ventas por mes
-                ventas.forEach(v => {
+                // Generar array de meses
+                const meses = [];
+                const ventasPorMes = {};
+                for (let d = new Date(mesInicio); d <= mesFin; d.setMonth(d.getMonth() + 1)) {
+                    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                    meses.push(key);
+                    ventasPorMes[key] = {};
+                }
+
+                // Agrupar ventas por mes y categoría
+                ventasFiltradas.forEach(v => {
                     const fecha = new Date(v.fecha);
                     const key = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
                     if (ventasPorMes.hasOwnProperty(key)) {
-                        ventasPorMes[key] += parseFloat(v.monto_total);
+                        const producto = productos.find(p => p.nombre === v.producto_nombre);
+                        const categoria = producto?.categoria || 'Sin categoría';
+
+                        if (!ventasPorMes[key][categoria]) {
+                            ventasPorMes[key][categoria] = 0;
+                        }
+                        ventasPorMes[key][categoria] += parseFloat(v.monto_total);
                     }
                 });
 
-                labels = Object.keys(ventasPorMes).map(key => {
-                    const [año, mes] = key.split('-');
-                    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-                    return `${meses[parseInt(mes) - 1]} ${año}`;
+                // Obtener todas las categorías únicas
+                const categorias = new Set();
+                Object.values(ventasPorMes).forEach(mes => {
+                    Object.keys(mes).forEach(cat => categorias.add(cat));
                 });
-                data = Object.values(ventasPorMes);
+
+                labels = meses.map(key => {
+                    const [año, mes] = key.split('-');
+                    const nombresMeses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+                    return `${nombresMeses[parseInt(mes) - 1]} ${año}`;
+                });
+
+                datasets = crearDatasetsPorCategoria(Array.from(categorias), meses, ventasPorMes);
 
             } else if (vistaActual === 'año') {
-                // Agrupar por año (últimos 5 años)
-                const ventasPorAño = {};
-                const añoActual = new Date().getFullYear();
+                // Determinar rango de años
+                const fechaDesde = document.getElementById('fechaDesde').value;
+                const fechaHasta = document.getElementById('fechaHasta').value;
 
-                // Inicializar últimos 5 años
-                for (let i = 4; i >= 0; i--) {
-                    const año = añoActual - i;
-                    ventasPorAño[año] = 0;
+                let añoInicio, añoFin;
+
+                if (fechaDesde && fechaHasta) {
+                    añoInicio = new Date(fechaDesde).getFullYear();
+                    añoFin = new Date(fechaHasta).getFullYear();
+                } else if (fechaDesde) {
+                    añoInicio = new Date(fechaDesde).getFullYear();
+                    añoFin = new Date().getFullYear();
+                } else if (fechaHasta) {
+                    añoFin = new Date(fechaHasta).getFullYear();
+                    añoInicio = añoFin - 4;
+                } else {
+                    // Sin filtros: últimos 5 años
+                    añoFin = new Date().getFullYear();
+                    añoInicio = añoFin - 4;
                 }
 
-                // Contar ventas por año
-                ventas.forEach(v => {
+                // Generar array de años
+                const años = [];
+                const ventasPorAño = {};
+                for (let año = añoInicio; año <= añoFin; año++) {
+                    años.push(año.toString());
+                    ventasPorAño[año] = {};
+                }
+
+                // Agrupar ventas por año y categoría
+                ventasFiltradas.forEach(v => {
                     const año = new Date(v.fecha).getFullYear();
                     if (ventasPorAño.hasOwnProperty(año)) {
-                        ventasPorAño[año] += parseFloat(v.monto_total);
+                        const producto = productos.find(p => p.nombre === v.producto_nombre);
+                        const categoria = producto?.categoria || 'Sin categoría';
+
+                        if (!ventasPorAño[año][categoria]) {
+                            ventasPorAño[año][categoria] = 0;
+                        }
+                        ventasPorAño[año][categoria] += parseFloat(v.monto_total);
                     }
                 });
 
-                labels = Object.keys(ventasPorAño);
-                data = Object.values(ventasPorAño);
+                // Obtener todas las categorías únicas
+                const categorias = new Set();
+                Object.values(ventasPorAño).forEach(año => {
+                    Object.keys(año).forEach(cat => categorias.add(cat));
+                });
+
+                labels = años;
+                datasets = crearDatasetsPorCategoria(Array.from(categorias), años, ventasPorAño);
             }
 
             // Destruir gráfico anterior si existe
@@ -246,11 +450,150 @@
                 type: 'bar',
                 data: {
                     labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 10,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': S/ ' + context.parsed.y.toFixed(2);
+                                },
+                                footer: function(tooltipItems) {
+                                    let total = 0;
+                                    tooltipItems.forEach(item => {
+                                        total += item.parsed.y;
+                                    });
+                                    return 'Total: S/ ' + total.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'S/ ' + value;
+                                }
+                            }
+                        },
+                        x: {
+                            stacked: true,
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Función para crear datasets por categoría con colores
+        function crearDatasetsPorCategoria(categorias, periodos, datos) {
+            const colores = [
+                { bg: 'rgba(14, 165, 233, 0.8)', border: 'rgba(14, 165, 233, 1)' },     // Azul
+                { bg: 'rgba(236, 72, 153, 0.8)', border: 'rgba(236, 72, 153, 1)' },     // Rosa
+                { bg: 'rgba(34, 197, 94, 0.8)', border: 'rgba(34, 197, 94, 1)' },       // Verde
+                { bg: 'rgba(251, 146, 60, 0.8)', border: 'rgba(251, 146, 60, 1)' },     // Naranja
+                { bg: 'rgba(168, 85, 247, 0.8)', border: 'rgba(168, 85, 247, 1)' },     // Morado
+                { bg: 'rgba(234, 179, 8, 0.8)', border: 'rgba(234, 179, 8, 1)' },       // Amarillo
+                { bg: 'rgba(239, 68, 68, 0.8)', border: 'rgba(239, 68, 68, 1)' },       // Rojo
+                { bg: 'rgba(59, 130, 246, 0.8)', border: 'rgba(59, 130, 246, 1)' },     // Azul claro
+            ];
+
+            return categorias.map((categoria, index) => {
+                const color = colores[index % colores.length];
+                const dataValues = periodos.map(periodo => {
+                    const key = typeof periodo === 'number' ? periodo : periodo;
+                    return datos[key]?.[categoria] || 0;
+                });
+
+                return {
+                    label: categoria,
+                    data: dataValues,
+                    backgroundColor: color.bg,
+                    borderColor: color.border,
+                    borderWidth: 2,
+                    borderRadius: 6
+                };
+            });
+        }
+
+        function cargarGraficoPorCategoria() {
+            const productos = JSON.parse(localStorage.getItem('productos') || '[]');
+
+            // Agrupar ventas por categoría
+            const ventasPorCategoria = {};
+
+            ventasFiltradas.forEach(venta => {
+                // Buscar el producto de esta venta
+                const producto = productos.find(p => p.nombre === venta.producto_nombre);
+                const categoria = producto?.categoria || 'Sin categoría';
+
+                if (!ventasPorCategoria[categoria]) {
+                    ventasPorCategoria[categoria] = 0;
+                }
+                ventasPorCategoria[categoria] += parseFloat(venta.monto_total);
+            });
+
+            // Preparar datos para el gráfico
+            const labels = Object.keys(ventasPorCategoria);
+            const data = Object.values(ventasPorCategoria);
+
+            // Colores para cada categoría
+            const colores = [
+                'rgba(14, 165, 233, 0.8)',   // Azul
+                'rgba(236, 72, 153, 0.8)',   // Rosa
+                'rgba(34, 197, 94, 0.8)',    // Verde
+                'rgba(251, 146, 60, 0.8)',   // Naranja
+                'rgba(168, 85, 247, 0.8)',   // Morado
+                'rgba(234, 179, 8, 0.8)',    // Amarillo
+                'rgba(239, 68, 68, 0.8)',    // Rojo
+                'rgba(59, 130, 246, 0.8)',   // Azul claro
+            ];
+
+            const bordeColores = [
+                'rgba(14, 165, 233, 1)',
+                'rgba(236, 72, 153, 1)',
+                'rgba(34, 197, 94, 1)',
+                'rgba(251, 146, 60, 1)',
+                'rgba(168, 85, 247, 1)',
+                'rgba(234, 179, 8, 1)',
+                'rgba(239, 68, 68, 1)',
+                'rgba(59, 130, 246, 1)',
+            ];
+
+            // Destruir gráfico anterior si existe
+            if (ventasChart) {
+                ventasChart.destroy();
+            }
+
+            // Crear nuevo gráfico
+            const ctx = document.getElementById('ventasChart').getContext('2d');
+            ventasChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
                     datasets: [{
-                        label: 'Monto de Ventas (S/)',
+                        label: 'Monto de Ventas por Categoría (S/)',
                         data: data,
-                        backgroundColor: 'rgba(14, 165, 233, 0.8)',
-                        borderColor: 'rgba(14, 165, 233, 1)',
+                        backgroundColor: labels.map((_, i) => colores[i % colores.length]),
+                        borderColor: labels.map((_, i) => bordeColores[i % bordeColores.length]),
                         borderWidth: 2,
                         borderRadius: 6
                     }]
