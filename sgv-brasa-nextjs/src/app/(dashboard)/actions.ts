@@ -53,7 +53,16 @@ export async function getDashboardData(
   const { data, error } = await query
 
   if (error) {
-    console.error('Error fetching ventas:', error)
+    console.error('❌ Error fetching ventas:', error)
+    console.error('Error details:', JSON.stringify(error, null, 2))
+
+    // Si el error es por falta de campo categoria, dar instrucciones claras
+    if (error.message?.includes('categoria') || error.message?.includes('column')) {
+      console.error('\n⚠️  MIGRACIÓN REQUERIDA: El campo "categoria" no existe en la tabla productos.')
+      console.error('📝 Ejecuta el script: supabase-add-categoria.sql')
+      console.error('📖 Lee: MIGRATION_INSTRUCCIONES.md para más detalles\n')
+    }
+
     return {
       kpis: {
         totalVentas: 0,
