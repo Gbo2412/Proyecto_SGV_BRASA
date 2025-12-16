@@ -20,16 +20,12 @@ interface TemporalChartProps {
   period: "day" | "month" | "year"
 }
 
-// Colores para las categorías
+// Colores pasteles para las categorías
 const CATEGORY_COLORS: Record<string, string> = {
-  "Sin categoría": "#94a3b8",
-  "Parrillas": "#3b82f6",
-  "Bebidas": "#10b981",
-  "Postres": "#f59e0b",
-  "Entradas": "#8b5cf6",
-  "Platos Fondo": "#ef4444",
-  "Especiales": "#ec4899",
-  "Otros": "#6366f1",
+  "Sin categoría": "#cbd5e1",           // Gris claro
+  "Creación de contenido": "#93c5fd",   // Azul pastel
+  "Asesoría": "#86efac",                // Verde menta pastel
+  "Publicidad": "#fda4af",              // Rosa coral pastel
 }
 
 export function TemporalChart({ data, period }: TemporalChartProps) {
